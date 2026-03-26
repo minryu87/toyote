@@ -1,0 +1,1837 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TOYOTE 테니스 대진표</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; height: 100vh; background: #f5f5f5; color: #333; }
+
+/* Sidebar */
+.sidebar { width: 160px; background: #2c3e50; color: #ecf0f1; display: flex; flex-direction: column; flex-shrink: 0; }
+.sidebar-logo { padding: 16px 10px; text-align: center; font-size: 1.2em; font-weight: bold; border-bottom: 1px solid #34495e; letter-spacing: 2px; color: #2ecc71; }
+.sidebar-menu { list-style: none; padding: 10px 0; }
+.sidebar-menu li { padding: 12px 16px; cursor: pointer; transition: background 0.2s; font-size: 0.88em; border-left: 3px solid transparent; }
+.sidebar-menu li:hover { background: #34495e; }
+.sidebar-menu li.active { background: #34495e; border-left-color: #2ecc71; color: #2ecc71; }
+
+/* Main */
+.main { flex: 1; overflow-y: auto; padding: 20px; }
+.page { display: none; }
+.page.active { display: block; }
+
+/* Cards */
+.member-card { display: inline-flex; align-items: center; background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 6px 12px; margin: 3px; font-size: 0.85em; position: relative; cursor: default; transition: box-shadow 0.2s; }
+.member-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+.member-card.female { border-left: 3px solid #e91e63; }
+.member-card.male { border-left: 3px solid #2196f3; }
+.member-card.guest { border-style: dashed; opacity: 0.85; }
+.member-card .card-name { margin-right: 6px; }
+.member-card .card-menu { cursor: pointer; color: #999; font-size: 1.1em; padding: 0 4px; }
+.member-card .card-menu:hover { color: #333; }
+
+/* Gender sections */
+.gender-section { display: inline-block; vertical-align: top; min-width: 260px; margin: 0 16px 16px 0; }
+.gender-section h3 { margin-bottom: 10px; font-size: 1em; padding: 6px 12px; border-radius: 6px; display: inline-block; }
+.gender-section h3.female-title { background: #fce4ec; color: #c2185b; }
+.gender-section h3.male-title { background: #e3f2fd; color: #1565c0; }
+.cards-area { min-height: 50px; padding: 6px; background: #fafafa; border-radius: 8px; border: 1px dashed #ddd; }
+
+/* Buttons */
+.btn { display: inline-block; padding: 7px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.88em; transition: background 0.2s; }
+.btn-primary { background: #2ecc71; color: #fff; }
+.btn-primary:hover { background: #27ae60; }
+.btn-secondary { background: #95a5a6; color: #fff; }
+.btn-secondary:hover { background: #7f8c8d; }
+.btn-danger { background: #e74c3c; color: #fff; }
+.btn-danger:hover { background: #c0392b; }
+.btn-outline { background: transparent; border: 1px solid #bbb; color: #555; }
+.btn-outline:hover { background: #eee; }
+.btn-sm { padding: 3px 8px; font-size: 0.8em; }
+.btn-add { width: 30px; height: 30px; border-radius: 50%; font-size: 1.2em; display: inline-flex; align-items: center; justify-content: center; border: 2px dashed #aaa; background: #fff; color: #888; cursor: pointer; margin: 3px; }
+.btn-add:hover { border-color: #2ecc71; color: #2ecc71; }
+
+/* Modal */
+.modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1000; align-items: center; justify-content: center; }
+.modal-overlay.show { display: flex; }
+.modal { background: #fff; border-radius: 12px; padding: 24px; min-width: 300px; max-width: 90vw; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+.modal h3 { margin-bottom: 16px; }
+.modal .form-group { margin-bottom: 14px; }
+.modal label { display: block; margin-bottom: 4px; font-size: 0.85em; color: #666; }
+.modal input, .modal select { width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95em; }
+.modal .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+/* Dropdown menu */
+.dropdown { position: absolute; top: 100%; right: 0; background: #fff; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; min-width: 100px; overflow: hidden; }
+.dropdown-item { padding: 8px 16px; cursor: pointer; font-size: 0.85em; white-space: nowrap; }
+.dropdown-item:hover { background: #f0f0f0; }
+.dropdown-item.danger { color: #e74c3c; }
+
+/* ===== Draw page ===== */
+.date-picker-section { margin-bottom: 12px; display: flex; align-items: center; gap: 12px; }
+.date-picker-section input[type="date"] { padding: 6px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95em; }
+
+/* Participant section */
+.participant-section { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 12px; border: 1px solid #e0e0e0; position: relative; }
+.participant-section.collapsed .participant-body { display: none; }
+.participant-section.collapsed .center-btn { display: none; }
+.participant-toggle { position: absolute; top: 12px; right: 16px; cursor: pointer; font-size: 0.8em; color: #2ecc71; border: 1px solid #2ecc71; border-radius: 4px; padding: 2px 10px; background: #fff; }
+.participant-toggle:hover { background: #e8f8f0; }
+.participant-columns { display: flex; gap: 20px; margin-top: 10px; }
+.participant-col { flex: 1; min-width: 0; }
+.participant-col h4 { margin-bottom: 6px; font-size: 0.88em; color: #666; }
+
+/* Hover overlay for add/remove */
+.member-card.selectable { cursor: pointer; position: relative; }
+.member-card.selectable .hover-overlay { display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(46,204,113,0.85); border-radius: 8px; align-items: center; justify-content: center; color: #fff; font-size: 1.3em; font-weight: bold; }
+.member-card.selectable:hover .hover-overlay { display: flex; }
+.member-card.selectable.remove-mode .hover-overlay { background: rgba(231,76,60,0.85); }
+
+/* Draw section */
+.draw-section { background: #fff; border-radius: 12px; padding: 16px; border: 1px solid #e0e0e0; }
+.draw-toolbar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+.option-group { display: flex; gap: 3px; margin-left: 8px; }
+.option-group .opt-btn { padding: 5px 10px; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-size: 0.78em; background: #fff; transition: all 0.2s; }
+.option-group .opt-btn.active { background: #2ecc71; color: #fff; border-color: #2ecc71; }
+.mixed-input { display: flex; align-items: center; gap: 4px; margin-left: 10px; font-size: 0.82em; color: #555; }
+.mixed-input input[type="number"] { width: 42px; padding: 4px 6px; border: 1px solid #ddd; border-radius: 4px; text-align: center; font-size: 0.9em; }
+
+.draw-top-members { display: flex; gap: 12px; margin-bottom: 12px; padding: 10px; background: #f9f9f9; border-radius: 8px; flex-wrap: wrap; position: sticky; top: 0; z-index: 50; }
+.draw-top-members .gender-group { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; }
+.draw-top-members .gender-label { font-size: 0.78em; color: #999; margin-right: 3px; }
+
+.draw-content { display: flex; gap: 16px; }
+.draw-left { flex: 1; min-width: 0; }
+.draw-right { width: 400px; flex-shrink: 0; }
+
+/* Games grid: 2 columns */
+.games-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.games-grid .game-block:last-child:nth-child(odd) { /* 5th game spans or stays in col1 */ }
+
+/* Game block */
+.game-block { background: #fafafa; border-radius: 8px; padding: 10px; border: 1px solid #e8e8e8; }
+.game-block.error { border-color: #e74c3c; background: #fff5f5; }
+.game-block h4 { margin-bottom: 8px; font-size: 0.88em; color: #555; }
+.game-block h4 .game-drag-handle { cursor: grab; user-select: none; padding: 2px 6px; border-radius: 4px; }
+.game-block h4 .game-drag-handle:active { cursor: grabbing; }
+.game-block h4 .game-drag-handle:hover { background: #e0e0e0; }
+.game-block.drag-over-game { outline: 2px dashed #2ecc71; outline-offset: -2px; }
+
+/* Court type colors */
+.court-row.type-male { background: #e3f2fd; border-radius: 6px; padding: 2px 4px; }
+.court-row.type-female { background: #fce4ec; border-radius: 6px; padding: 2px 4px; }
+.court-row.type-mixed { background: #fff8e1; border-radius: 6px; padding: 2px 4px; }
+.court-row.type-misc { background: #e8f5e9; border-radius: 6px; padding: 2px 4px; }
+
+.court-row { display: flex; align-items: center; margin-bottom: 6px; gap: 4px; }
+.court-label { font-weight: bold; font-size: 0.8em; color: #777; width: 42px; flex-shrink: 0; }
+.slot { width: 64px; height: 34px; border: 2px dashed #ccc; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.78em; background: #fff; position: relative; transition: all 0.2s; }
+.slot.dragover { border-color: #2ecc71; background: #e8f8f0; }
+.slot.filled { border-style: solid; border-color: #bbb; background: #fff; cursor: grab; }
+.slot.filled.female { border-color: #e91e63; background: #fce4ec; }
+.slot.filled.male { border-color: #2196f3; background: #e3f2fd; }
+.slot.locked { opacity: 1; }
+.slot.locked::after { content: '🔒'; position: absolute; top: -6px; right: -6px; font-size: 0.65em; }
+.slot .slot-name { font-size: 0.78em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 54px; }
+.slot .slot-menu { display: none; position: absolute; top: -4px; right: -4px; width: 16px; height: 16px; background: #666; color: #fff; border-radius: 50%; font-size: 0.55em; align-items: center; justify-content: center; cursor: pointer; line-height: 1; }
+.slot.filled:hover .slot-menu { display: flex; }
+.vs-label { font-weight: bold; color: #999; font-size: 0.8em; margin: 0 2px; }
+.wait-row { display: flex; align-items: center; gap: 4px; margin-top: 4px; }
+.wait-label { font-size: 0.78em; color: #e67e22; width: 42px; flex-shrink: 0; }
+
+/* Stats table */
+.stats-table { width: 100%; border-collapse: collapse; font-size: 0.78em; margin-bottom: 12px; }
+.stats-table th, .stats-table td { border: 1px solid #ddd; padding: 3px 6px; text-align: center; }
+.stats-table th { background: #f0f0f0; font-weight: 600; }
+.stats-table .name-col { text-align: left; font-weight: 500; white-space: nowrap; }
+
+/* Matrix */
+.matrix-section { margin-bottom: 16px; }
+.matrix-section h4 { margin-bottom: 6px; font-size: 0.85em; }
+.matrix-table { border-collapse: collapse; font-size: 0.72em; }
+.matrix-table th, .matrix-table td { border: 1px solid #ddd; padding: 2px 5px; text-align: center; min-width: 28px; }
+.matrix-table th { background: #f5f5f5; font-weight: 600; font-size: 0.82em; white-space: nowrap; }
+.matrix-table td.diag { background: #eee; }
+
+/* History page */
+.history-layout { display: flex; gap: 20px; }
+.history-left { flex: 1; }
+.history-right { width: 460px; flex-shrink: 0; }
+.calendar { background: #fff; border-radius: 12px; padding: 14px; border: 1px solid #e0e0e0; margin-bottom: 14px; }
+.calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+.calendar-grid .day-header { font-size: 0.78em; color: #999; padding: 4px; }
+.calendar-grid .day-cell { padding: 6px 3px; border-radius: 6px; cursor: pointer; font-size: 0.82em; min-height: 32px; position: relative; }
+.calendar-grid .day-cell:hover { background: #f0f0f0; }
+.calendar-grid .day-cell.today { font-weight: bold; }
+.calendar-grid .day-cell.has-game::after { content: ''; position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); width: 6px; height: 6px; background: #2ecc71; border-radius: 50%; }
+.calendar-grid .day-cell.selected { background: #e8f8f0; border: 1px solid #2ecc71; }
+.calendar-grid .day-cell.other-month { color: #ccc; }
+
+.saved-draw-view { background: #fff; border-radius: 12px; padding: 14px; border: 1px solid #e0e0e0; min-height: 180px; }
+
+/* Draggable member in top section */
+.drag-member { cursor: grab; user-select: none; }
+.drag-member:active { cursor: grabbing; }
+
+/* Section titles */
+.section-title { font-size: 1em; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.section-title .badge { background: #2ecc71; color: #fff; font-size: 0.7em; padding: 2px 8px; border-radius: 10px; }
+
+/* Page title */
+.page-title { font-size: 1.2em; font-weight: 700; margin-bottom: 16px; color: #2c3e50; }
+
+/* Confirm/finalize button */
+.center-btn { text-align: center; margin-top: 12px; }
+
+/* Scrollable matrix */
+.matrix-wrapper { overflow-x: auto; max-width: 100%; }
+
+/* Print area (hidden on screen, rendered for capture) */
+#print-area { display: none; background: #fff; width: 900px; padding: 0; position: absolute; left: 0; top: 0; z-index: 9999; }
+
+/* Print layout styles */
+.print-page { font-family: 'Segoe UI', Tahoma, sans-serif; padding: 24px; color: #333; }
+.print-header { text-align: center; margin-bottom: 20px; }
+.print-header h1 { font-size: 1.6em; display: inline-block; }
+.print-header .print-logo { font-weight: bold; font-size: 0.9em; border: 2px solid #2ecc71; border-radius: 50%; padding: 4px 10px; color: #2ecc71; display: inline-block; margin: 0 12px; vertical-align: middle; }
+.print-body { display: flex; gap: 30px; }
+.print-games { flex: 1; }
+.print-stats { width: 200px; flex-shrink: 0; padding-top: 62px; }
+.print-game { margin-bottom: 18px; }
+.print-game h3 { text-align: center; font-size: 0.95em; margin-bottom: 6px; }
+.print-game table { width: 100%; border-collapse: collapse; font-size: 0.88em; }
+.print-game table td, .print-game table th { border: 1px solid #999; padding: 5px 10px; text-align: center; }
+.print-game table .court-label-cell { background: #f0f0f0; font-weight: bold; width: 55px; }
+.print-game table .vs-cell { font-weight: bold; color: #888; width: 30px; border-left: none; border-right: none; background: transparent; }
+.print-game table .player-cell { min-width: 60px; }
+.print-game table .player-cell.bg-female { background: #fce4ec; }
+.print-game table .player-cell.bg-male { background: #e3f2fd; }
+.print-game table .player-cell.bg-mixed { background: #fff8e1; }
+.print-game table .player-cell.bg-misc { background: #e8f5e9; }
+.print-game .print-wait { font-size: 0.85em; padding: 5px 10px; border: 1px solid #999; border-top: none; margin-bottom: 0; }
+.print-stats h3 { text-align: center; font-size: 0.95em; margin-bottom: 8px; }
+.print-stats table { width: 100%; border-collapse: collapse; font-size: 0.88em; }
+.print-stats table td, .print-stats table th { border: 1px solid #999; padding: 4px 10px; text-align: center; }
+.print-stats .name-cell { text-align: left; }
+.print-footer { margin-top: 24px; font-size: 0.82em; color: #e67e22; line-height: 1.6; }
+
+/* Toast */
+.toast { position: fixed; bottom: 24px; right: 24px; background: #333; color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 0.9em; z-index: 2000; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+.toast.show { opacity: 1; }
+
+/* Court type legend */
+.court-legend { display: flex; gap: 12px; font-size: 0.75em; color: #666; margin-bottom: 8px; flex-wrap: wrap; }
+.court-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.court-legend .swatch { width: 14px; height: 14px; border-radius: 3px; border: 1px solid #ddd; }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sidebar-logo">TOYOTE</div>
+  <ul class="sidebar-menu">
+    <li class="active" data-page="members">멤버 관리</li>
+    <li data-page="draw">대진표 작성</li>
+    <li data-page="history">히스토리</li>
+    <li data-page="guide">이용 가이드</li>
+  </ul>
+  <div style="padding:12px 16px;margin-top:auto;font-size:0.7em;color:#7f8c8d;border-top:1px solid #34495e;">Airtable 동기화</div>
+</nav>
+
+<!-- Main Content -->
+<div class="main">
+
+  <!-- ========== 멤버 관리 ========== -->
+  <div id="page-members" class="page active">
+    <div class="page-title">멤버 관리</div>
+    <div style="display:flex; gap: 28px; flex-wrap: wrap;">
+      <div class="gender-section">
+        <h3 class="female-title">여자</h3>
+        <button class="btn-add" onclick="openMemberModal('F')">+</button>
+        <div class="cards-area" id="female-members"></div>
+      </div>
+      <div class="gender-section">
+        <h3 class="male-title">남자</h3>
+        <button class="btn-add" onclick="openMemberModal('M')">+</button>
+        <div class="cards-area" id="male-members"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 대진표 작성 ========== -->
+  <div id="page-draw" class="page">
+    <div class="page-title">대진표 작성</div>
+
+    <!-- Date -->
+    <div class="date-picker-section">
+      <label style="font-weight:600;">게임 날짜:</label>
+      <input type="date" id="game-date">
+    </div>
+
+    <!-- Participant Selection -->
+    <div class="participant-section" id="participant-section">
+      <div class="section-title">참여 멤버 선택 <span class="badge" id="participant-count">0명</span></div>
+      <button class="participant-toggle" id="participant-toggle" onclick="toggleParticipantSection()">접기</button>
+      <div class="participant-body" id="participant-body">
+        <div class="participant-columns">
+          <div class="participant-col">
+            <h4>등록 멤버 <button class="btn btn-sm btn-outline" onclick="addAllMembers()">전체 추가 →</button></h4>
+            <div style="margin-bottom:6px;">
+              <div style="font-size:0.78em;color:#c2185b;margin-bottom:3px;">여자</div>
+              <div id="reg-female" class="cards-area"></div>
+            </div>
+            <div>
+              <div style="font-size:0.78em;color:#1565c0;margin-bottom:3px;">남자</div>
+              <div id="reg-male" class="cards-area"></div>
+            </div>
+          </div>
+          <div class="participant-col">
+            <h4>참가 멤버</h4>
+            <div style="margin-bottom:6px;">
+              <div style="font-size:0.78em;color:#c2185b;margin-bottom:3px;">여자 <button class="btn-add" style="width:20px;height:20px;font-size:0.8em;" onclick="openGuestModal('F')">+</button> <span style="color:#999;font-size:0.72em;">게스트</span></div>
+              <div id="sel-female" class="cards-area"></div>
+            </div>
+            <div>
+              <div style="font-size:0.78em;color:#1565c0;margin-bottom:3px;">남자 <button class="btn-add" style="width:20px;height:20px;font-size:0.8em;" onclick="openGuestModal('M')">+</button> <span style="color:#999;font-size:0.72em;">게스트</span></div>
+              <div id="sel-male" class="cards-area"></div>
+            </div>
+          </div>
+        </div>
+        <div class="center-btn">
+          <button class="btn btn-primary" onclick="confirmParticipants()">멤버 확정</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Draw Section -->
+    <div class="draw-section" id="draw-section" style="display:none;">
+      <div class="draw-toolbar no-print">
+        <button class="btn btn-secondary btn-sm" onclick="resetDraw()">초기화</button>
+        <button class="btn btn-primary btn-sm" onclick="generateDraw()">대진 생성</button>
+        <div class="option-group">
+          <div class="opt-btn active" data-opt="pair" onclick="selectOption(this)">페어 우선</div>
+          <div class="opt-btn" data-opt="opponent" onclick="selectOption(this)">상대 우선</div>
+          <div class="opt-btn" data-opt="history" onclick="selectOption(this)">히스토리 우선</div>
+          <div class="opt-btn" data-opt="random" onclick="selectOption(this)">무작위</div>
+        </div>
+        <div class="mixed-input">
+          <label>혼복:</label>
+          <input type="number" id="mixed-count" min="0" max="10" value="0">
+          <span>게임</span>
+        </div>
+      </div>
+
+      <!-- Court type legend -->
+      <div class="court-legend no-print">
+        <span><span class="swatch" style="background:#e3f2fd;"></span>남복</span>
+        <span><span class="swatch" style="background:#fce4ec;"></span>여복</span>
+        <span><span class="swatch" style="background:#fff8e1;"></span>혼복</span>
+        <span><span class="swatch" style="background:#e8f5e9;"></span>잡복</span>
+      </div>
+
+      <!-- Top members for drag -->
+      <div class="draw-top-members no-print" id="draw-top-members"></div>
+
+      <div class="draw-content">
+        <div class="draw-left">
+          <div class="games-grid" id="draw-games"></div>
+        </div>
+        <div class="draw-right">
+          <div class="section-title" style="font-size:0.85em;">게임 수 / 대기 수</div>
+          <div id="stats-table-wrapper"></div>
+          <div class="matrix-section">
+            <h4>페어 횟수</h4>
+            <div class="matrix-wrapper" id="pair-matrix"></div>
+          </div>
+          <div class="matrix-section">
+            <h4>상대 횟수</h4>
+            <div class="matrix-wrapper" id="opponent-matrix"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; margin-top:16px;" class="no-print">
+        <button class="btn btn-primary" onclick="saveDraw()">저장하기</button>
+        <button class="btn btn-outline" onclick="exportPDF()">이미지 저장 (JPG)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 히스토리 ========== -->
+  <div id="page-history" class="page">
+    <div class="page-title">히스토리</div>
+    <div class="history-layout">
+      <div class="history-left">
+        <div class="calendar" id="history-calendar"></div>
+        <div class="saved-draw-view" id="saved-draw-view">
+          <p style="color:#999;">캘린더에서 날짜를 선택하세요.</p>
+        </div>
+      </div>
+      <div class="history-right">
+        <div class="matrix-section">
+          <h4>누적 페어 매트릭스</h4>
+          <div class="matrix-wrapper" id="cum-pair-matrix"></div>
+        </div>
+        <div class="matrix-section">
+          <h4>누적 상대 매트릭스</h4>
+          <div class="matrix-wrapper" id="cum-opponent-matrix"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 이용 가이드 ========== -->
+  <div id="page-guide" class="page">
+    <div class="page-title">이용 가이드</div>
+    <div style="max-width:780px;">
+
+      <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #e0e0e0;margin-bottom:16px;">
+        <h3 style="font-size:1.05em;color:#2c3e50;margin-bottom:12px;">1. 멤버 관리</h3>
+        <div style="font-size:0.9em;line-height:1.8;color:#555;">
+          <p>정기적으로 참여하는 회원을 등록하고 관리하는 메뉴입니다.</p>
+          <ul style="margin:8px 0 0 20px;">
+            <li><strong>멤버 추가</strong> : 여자/남자 섹션의 <strong>[+]</strong> 버튼을 클릭하여 이름과 성별을 입력합니다.</li>
+            <li><strong>멤버 수정/삭제</strong> : 각 멤버 카드의 <strong>[...]</strong> 버튼을 클릭하면 수정 또는 삭제할 수 있습니다.</li>
+            <li>등록된 멤버 정보는 브라우저에 자동 저장됩니다.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #e0e0e0;margin-bottom:16px;">
+        <h3 style="font-size:1.05em;color:#2c3e50;margin-bottom:12px;">2. 대진표 작성</h3>
+        <div style="font-size:0.9em;line-height:1.8;color:#555;">
+
+          <p><strong style="color:#2ecc71;">STEP 1 - 게임 날짜 선택</strong></p>
+          <p style="margin-bottom:10px;">상단의 캘린더에서 게임 날짜를 지정합니다.</p>
+
+          <p><strong style="color:#2ecc71;">STEP 2 - 참여 멤버 선택</strong></p>
+          <ul style="margin:4px 0 10px 20px;">
+            <li>좌측 '등록 멤버'에서 카드를 클릭(호버 시 <strong>+</strong> 표시)하면 우측 '참가 멤버'로 이동합니다.</li>
+            <li><strong>[전체 추가]</strong> 버튼으로 모든 멤버를 한 번에 추가할 수 있습니다.</li>
+            <li>우측 참가 멤버 카드를 클릭(호버 시 <strong>-</strong> 표시)하면 제거됩니다.</li>
+            <li>해당 날짜에만 참여하는 <strong>게스트</strong>는 우측의 <strong>[+]</strong> 버튼으로 추가합니다.</li>
+            <li>선택이 완료되면 <strong>[멤버 확정]</strong>을 클릭합니다.</li>
+          </ul>
+
+          <p><strong style="color:#2ecc71;">STEP 3 - 대진 생성</strong></p>
+          <ul style="margin:4px 0 10px 20px;">
+            <li><strong>혼복 게임 수</strong>를 설정합니다 (0이면 여복/남복만 구성).</li>
+            <li>알고리즘 옵션을 선택합니다:
+              <ul style="margin:4px 0 4px 16px;">
+                <li><strong>페어 우선</strong> : 같은 팀이 되는 페어 횟수를 균등하게</li>
+                <li><strong>상대 우선</strong> : 상대팀으로 만나는 횟수를 균등하게</li>
+                <li><strong>히스토리 우선</strong> : 과거 저장된 대진표까지 고려하여 균등하게</li>
+                <li><strong>무작위</strong> : 랜덤 배치</li>
+              </ul>
+            </li>
+            <li><strong>[대진 생성]</strong>을 클릭하면 자동으로 대진이 구성됩니다.</li>
+            <li>게임 수는 항상 최대한 균등하게 배분되며, 게스트의 게임 수가 우선 보장됩니다.</li>
+          </ul>
+
+          <p><strong style="color:#2ecc71;">STEP 4 - 대진 편집</strong></p>
+          <ul style="margin:4px 0 10px 20px;">
+            <li>상단 멤버 카드를 <strong>드래그&드롭</strong>하여 특정 슬롯에 배치할 수 있습니다.</li>
+            <li>슬롯 내 카드끼리도 드래그&드롭으로 교환 가능합니다.</li>
+            <li>슬롯 카드의 <strong>[...]</strong> 메뉴에서:
+              <ul style="margin:4px 0 4px 16px;">
+                <li><strong>Lock</strong> : 해당 슬롯을 고정합니다. [대진 생성] 시에도 변경되지 않습니다.</li>
+                <li><strong>취소</strong> : 슬롯에서 제거합니다.</li>
+              </ul>
+            </li>
+            <li><strong>게임 제목</strong>(*1게임* 등)을 드래그하면 게임 순서를 통째로 교환할 수 있습니다.</li>
+            <li>한 게임에 동일 인물이 중복 배치되면 해당 게임이 <span style="color:#e74c3c;">빨간색</span>으로 표시됩니다.</li>
+          </ul>
+
+          <p><strong style="color:#2ecc71;">STEP 5 - 저장 및 출력</strong></p>
+          <ul style="margin:4px 0 0  20px;">
+            <li><strong>[저장하기]</strong> : 대진표를 브라우저에 저장합니다. 히스토리에서 불러올 수 있습니다.</li>
+            <li><strong>[이미지 저장]</strong> : 대진표를 JPG 이미지 파일로 다운로드합니다.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #e0e0e0;margin-bottom:16px;">
+        <h3 style="font-size:1.05em;color:#2c3e50;margin-bottom:12px;">3. 우측 실시간 통계</h3>
+        <div style="font-size:0.9em;line-height:1.8;color:#555;">
+          <ul style="margin:0 0 0 20px;">
+            <li><strong>게임 수 / 대기 수</strong> : 각 멤버의 출전 게임 수와 대기 횟수</li>
+            <li><strong>페어 횟수 매트릭스</strong> : 같은 팀으로 배치된 횟수 (색이 진할수록 많음)</li>
+            <li><strong>상대 횟수 매트릭스</strong> : 상대팀으로 만난 횟수 (색이 진할수록 많음)</li>
+            <li>대진을 수정할 때마다 실시간으로 업데이트됩니다.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #e0e0e0;margin-bottom:16px;">
+        <h3 style="font-size:1.05em;color:#2c3e50;margin-bottom:12px;">4. 히스토리</h3>
+        <div style="font-size:0.9em;line-height:1.8;color:#555;">
+          <ul style="margin:0 0 0 20px;">
+            <li>캘린더에서 저장된 게임 날짜에 <span style="color:#2ecc71;font-weight:bold;">녹색 배지</span>가 표시됩니다.</li>
+            <li>날짜를 클릭하면 저장된 대진표를 확인할 수 있습니다.</li>
+            <li><strong>[수정하기]</strong>를 클릭하면 해당 대진표를 대진표 작성 화면으로 불러옵니다.</li>
+            <li>우측에는 모든 저장된 대진표를 합산한 <strong>누적 페어/상대 매트릭스</strong>가 표시됩니다.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #e0e0e0;margin-bottom:16px;">
+        <h3 style="font-size:1.05em;color:#2c3e50;margin-bottom:12px;">5. 코트 유형 색상 안내</h3>
+        <div style="font-size:0.9em;line-height:1.8;color:#555;">
+          <table style="border-collapse:collapse;margin-top:6px;">
+            <tr><td style="width:80px;padding:6px 12px;background:#e3f2fd;border:1px solid #ddd;text-align:center;font-weight:600;">남복</td><td style="padding:6px 12px;border:1px solid #ddd;">남자 4명으로 구성</td></tr>
+            <tr><td style="padding:6px 12px;background:#fce4ec;border:1px solid #ddd;text-align:center;font-weight:600;">여복</td><td style="padding:6px 12px;border:1px solid #ddd;">여자 4명으로 구성</td></tr>
+            <tr><td style="padding:6px 12px;background:#fff8e1;border:1px solid #ddd;text-align:center;font-weight:600;">혼복</td><td style="padding:6px 12px;border:1px solid #ddd;">남녀 혼합 (각 팀 남1 + 여1)</td></tr>
+            <tr><td style="padding:6px 12px;background:#e8f5e9;border:1px solid #ddd;text-align:center;font-weight:600;">잡복</td><td style="padding:6px 12px;border:1px solid #ddd;">위 3가지에 해당하지 않는 구성 (최소화됨)</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div style="background:#fffbe6;border-radius:12px;padding:20px;border:1px solid #f0e68c;margin-bottom:16px;">
+        <h3 style="font-size:1.05em;color:#b8860b;margin-bottom:12px;">참고 사항</h3>
+        <div style="font-size:0.9em;line-height:1.8;color:#666;">
+          <ul style="margin:0 0 0 20px;">
+            <li>모든 데이터는 <strong>Airtable 클라우드</strong>에 자동 저장됩니다. 누가 접속하든 동일한 데이터를 볼 수 있습니다.</li>
+            <li>페이지를 열면 최신 데이터가 자동으로 로드됩니다.</li>
+            <li>2코트 기준 5게임으로 구성되며, 참가 인원에 따라 대기자가 배정됩니다.</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<!-- Print Area (hidden, rendered for PDF) -->
+<div id="print-area"></div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ===================== AIRTABLE CONFIG =====================
+const AT_TOKEN = 'patqL1XAWzzitwppv.bffc8f8f1efd783c42d245f9bcbb480d5cd4dd16adf7c3f6f964ffbfb89db3d7';
+const AT_BASE = 'app3Jmr8i0rfLISZN';
+const AT_URL = `https://api.airtable.com/v0/${AT_BASE}`;
+const AT_HEADERS = { 'Authorization': `Bearer ${AT_TOKEN}`, 'Content-Type': 'application/json' };
+
+// Airtable record ID maps (for update/delete)
+let memberRecordIds = {}; // memberId -> airtable record id
+let drawRecordIds = {};   // date -> airtable record id
+let configRecordId = null; // nextMemberId config record id
+
+async function atFetch(endpoint, options = {}) {
+  const res = await fetch(`${AT_URL}/${endpoint}`, { ...options, headers: AT_HEADERS });
+  if (!res.ok) { console.error('Airtable error', res.status, await res.text()); return null; }
+  return res.json();
+}
+
+// ===================== DATA =====================
+let members = [];
+let savedDraws = {};
+let nextMemberId = 1;
+
+let selectedParticipants = [];
+let drawGames = [];
+let lockedSlots = new Set();
+let currentOption = 'pair';
+let dataLoaded = false;
+
+// ---- Load all data from Airtable ----
+async function loadAllData() {
+  showToast('데이터 로딩 중...');
+  try {
+    await Promise.all([loadMembers(), loadDraws(), loadConfig()]);
+    dataLoaded = true;
+    renderMembers();
+    showToast('데이터 로드 완료');
+  } catch (e) {
+    console.error(e);
+    showToast('데이터 로드 실패');
+  }
+}
+
+async function loadMembers() {
+  members = [];
+  memberRecordIds = {};
+  let offset = null;
+  do {
+    const url = offset ? `Members?offset=${offset}` : 'Members';
+    const data = await atFetch(url);
+    if (!data) break;
+    data.records.forEach(r => {
+      if (r.fields.memberId != null) {
+        members.push({ id: r.fields.memberId, name: r.fields.name || '', gender: r.fields.gender || 'M' });
+        memberRecordIds[r.fields.memberId] = r.id;
+      }
+    });
+    offset = data.offset;
+  } while (offset);
+}
+
+async function loadDraws() {
+  savedDraws = {};
+  drawRecordIds = {};
+  let offset = null;
+  do {
+    const url = offset ? `Draws?offset=${offset}` : 'Draws';
+    const data = await atFetch(url);
+    if (!data) break;
+    data.records.forEach(r => {
+      const f = r.fields;
+      if (f.date) {
+        try {
+          savedDraws[f.date] = {
+            date: f.date,
+            participants: JSON.parse(f.participants || '[]'),
+            games: JSON.parse(f.games || '[]'),
+            savedAt: f.savedAt || ''
+          };
+          drawRecordIds[f.date] = r.id;
+        } catch (e) { console.error('Parse draw error', f.date, e); }
+      }
+    });
+    offset = data.offset;
+  } while (offset);
+}
+
+async function loadConfig() {
+  const data = await atFetch('Config');
+  if (!data) return;
+  data.records.forEach(r => {
+    if (r.fields.key === 'nextMemberId') {
+      nextMemberId = parseInt(r.fields.value) || 1;
+      configRecordId = r.id;
+    }
+  });
+}
+
+// ---- Save functions ----
+async function saveMembers() {
+  // Update nextMemberId in config
+  if (configRecordId) {
+    await atFetch('Config', {
+      method: 'PATCH',
+      body: JSON.stringify({ records: [{ id: configRecordId, fields: { value: nextMemberId.toString() } }] })
+    });
+  }
+}
+
+async function saveMemberToAirtable(member) {
+  const data = await atFetch('Members', {
+    method: 'POST',
+    body: JSON.stringify({ records: [{ fields: { memberId: member.id, name: member.name, gender: member.gender } }] })
+  });
+  if (data && data.records) {
+    memberRecordIds[member.id] = data.records[0].id;
+  }
+}
+
+async function updateMemberInAirtable(member) {
+  const recId = memberRecordIds[member.id];
+  if (!recId) return;
+  await atFetch('Members', {
+    method: 'PATCH',
+    body: JSON.stringify({ records: [{ id: recId, fields: { name: member.name, gender: member.gender } }] })
+  });
+}
+
+async function deleteMemberFromAirtable(memberId) {
+  const recId = memberRecordIds[memberId];
+  if (!recId) return;
+  await atFetch(`Members/${recId}`, { method: 'DELETE' });
+  delete memberRecordIds[memberId];
+}
+
+async function saveDrawsToStorage() {
+  // no-op: individual saves handled by saveDrawToAirtable
+}
+
+async function saveDrawToAirtable(date, drawData) {
+  const fields = {
+    date: date,
+    participants: JSON.stringify(drawData.participants),
+    games: JSON.stringify(drawData.games),
+    savedAt: drawData.savedAt || new Date().toISOString()
+  };
+  const existingId = drawRecordIds[date];
+  if (existingId) {
+    await atFetch('Draws', {
+      method: 'PATCH',
+      body: JSON.stringify({ records: [{ id: existingId, fields }] })
+    });
+  } else {
+    const data = await atFetch('Draws', {
+      method: 'POST',
+      body: JSON.stringify({ records: [{ fields }] })
+    });
+    if (data && data.records) {
+      drawRecordIds[date] = data.records[0].id;
+    }
+  }
+}
+
+async function deleteDrawFromAirtable(date) {
+  const recId = drawRecordIds[date];
+  if (!recId) return;
+  await atFetch(`Draws/${recId}`, { method: 'DELETE' });
+  delete drawRecordIds[date];
+}
+
+// ===================== NAVIGATION =====================
+document.querySelectorAll('.sidebar-menu li').forEach(li => {
+  li.addEventListener('click', () => {
+    document.querySelectorAll('.sidebar-menu li').forEach(l => l.classList.remove('active'));
+    li.classList.add('active');
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + li.dataset.page).classList.add('active');
+    if (li.dataset.page === 'draw') renderParticipantSection();
+    if (li.dataset.page === 'history') renderHistory();
+  });
+});
+
+// ===================== TOAST =====================
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ===================== MODAL =====================
+function showModal(html) {
+  document.getElementById('modal-content').innerHTML = html;
+  document.getElementById('modal-overlay').classList.add('show');
+}
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('show');
+}
+document.getElementById('modal-overlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeModal();
+});
+
+// ===================== MEMBER MANAGEMENT =====================
+function renderMembers() {
+  const fc = document.getElementById('female-members');
+  const mc = document.getElementById('male-members');
+  fc.innerHTML = ''; mc.innerHTML = '';
+  members.forEach(m => {
+    const card = document.createElement('div');
+    card.className = `member-card ${m.gender === 'F' ? 'female' : 'male'}`;
+    card.innerHTML = `<span class="card-name">${m.name}</span><span class="card-menu" onclick="toggleMemberMenu(event, ${m.id})">⋯</span>`;
+    (m.gender === 'F' ? fc : mc).appendChild(card);
+  });
+}
+
+function toggleMemberMenu(e, id) {
+  e.stopPropagation();
+  document.querySelectorAll('.dropdown').forEach(d => d.remove());
+  const dd = document.createElement('div');
+  dd.className = 'dropdown';
+  dd.innerHTML = `
+    <div class="dropdown-item" onclick="openEditMemberModal(${id})">수정</div>
+    <div class="dropdown-item danger" onclick="deleteMember(${id})">삭제</div>`;
+  e.target.closest('.member-card').appendChild(dd);
+  setTimeout(() => document.addEventListener('click', function handler() { dd.remove(); document.removeEventListener('click', handler); }), 0);
+}
+
+function openMemberModal(gender) {
+  showModal(`<h3>멤버 추가</h3>
+    <div class="form-group"><label>이름</label><input id="m-name" placeholder="이름 입력"></div>
+    <div class="form-group"><label>성별</label><select id="m-gender">
+      <option value="F" ${gender==='F'?'selected':''}>여자</option>
+      <option value="M" ${gender==='M'?'selected':''}>남자</option></select></div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">취소</button>
+    <button class="btn btn-primary" onclick="addMember()">추가</button></div>`);
+  setTimeout(() => {
+    const el = document.getElementById('m-name');
+    el.focus();
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addMember(); } });
+  }, 100);
+}
+
+let _saving = false;
+async function addMember() {
+  if (_saving) return;
+  const name = document.getElementById('m-name').value.trim();
+  const gender = document.getElementById('m-gender').value;
+  if (!name) return;
+  _saving = true;
+  const member = { id: nextMemberId++, name, gender };
+  members.push(member);
+  renderMembers(); closeModal();
+  showToast('멤버가 추가되었습니다.');
+  await Promise.all([saveMembers(), saveMemberToAirtable(member)]);
+  _saving = false;
+}
+
+function openEditMemberModal(id) {
+  const m = members.find(x => x.id === id);
+  if (!m) return;
+  showModal(`<h3>멤버 수정</h3>
+    <div class="form-group"><label>이름</label><input id="m-name" value="${m.name}"></div>
+    <div class="form-group"><label>성별</label><select id="m-gender">
+      <option value="F" ${m.gender==='F'?'selected':''}>여자</option>
+      <option value="M" ${m.gender==='M'?'selected':''}>남자</option></select></div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">취소</button>
+    <button class="btn btn-primary" onclick="updateMember(${id})">저장</button></div>`);
+  setTimeout(() => {
+    const el = document.getElementById('m-name');
+    el.focus();
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); updateMember(id); } });
+  }, 100);
+}
+
+async function updateMember(id) {
+  const m = members.find(x => x.id === id);
+  if (!m) return;
+  m.name = document.getElementById('m-name').value.trim();
+  m.gender = document.getElementById('m-gender').value;
+  renderMembers(); closeModal();
+  showToast('멤버가 수정되었습니다.');
+  await updateMemberInAirtable(m);
+}
+
+async function deleteMember(id) {
+  if (!confirm('삭제하시겠습니까?')) return;
+  members = members.filter(x => x.id !== id);
+  renderMembers();
+  showToast('멤버가 삭제되었습니다.');
+  await deleteMemberFromAirtable(id);
+}
+
+// ===================== PARTICIPANT SECTION =====================
+let participantCollapsed = false;
+
+function toggleParticipantSection() {
+  participantCollapsed = !participantCollapsed;
+  const sec = document.getElementById('participant-section');
+  const btn = document.getElementById('participant-toggle');
+  if (participantCollapsed) {
+    sec.classList.add('collapsed');
+    btn.textContent = '펼치기';
+  } else {
+    sec.classList.remove('collapsed');
+    btn.textContent = '접기';
+  }
+}
+
+function renderParticipantSection() {
+  const rf = document.getElementById('reg-female');
+  const rm = document.getElementById('reg-male');
+  const sf = document.getElementById('sel-female');
+  const sm = document.getElementById('sel-male');
+  rf.innerHTML = ''; rm.innerHTML = '';
+
+  members.forEach(m => {
+    const isSelected = selectedParticipants.some(p => p.id === m.id);
+    if (isSelected) return;
+    const card = document.createElement('div');
+    card.className = `member-card ${m.gender === 'F' ? 'female' : 'male'} selectable`;
+    card.innerHTML = `<span class="card-name">${m.name}</span><div class="hover-overlay">+</div>`;
+    card.onclick = () => { addParticipant(m); };
+    (m.gender === 'F' ? rf : rm).appendChild(card);
+  });
+
+  sf.innerHTML = ''; sm.innerHTML = '';
+  selectedParticipants.forEach(p => {
+    const card = document.createElement('div');
+    card.className = `member-card ${p.gender === 'F' ? 'female' : 'male'} selectable remove-mode ${p.isGuest ? 'guest' : ''}`;
+    card.innerHTML = `<span class="card-name">${p.name}${p.isGuest ? ' (게스트)' : ''}</span><div class="hover-overlay">−</div>`;
+    card.onclick = () => { removeParticipant(p); };
+    (p.gender === 'F' ? sf : sm).appendChild(card);
+  });
+
+  document.getElementById('participant-count').textContent = selectedParticipants.length + '명';
+}
+
+function addParticipant(m) {
+  if (selectedParticipants.some(p => p.id === m.id)) return;
+  selectedParticipants.push({ id: m.id, name: m.name, gender: m.gender, isGuest: false });
+  renderParticipantSection();
+}
+
+function removeParticipant(p) {
+  selectedParticipants = selectedParticipants.filter(x => !(x.id === p.id && x.isGuest === p.isGuest && x.name === p.name));
+  renderParticipantSection();
+}
+
+function addAllMembers() {
+  members.forEach(m => {
+    if (!selectedParticipants.some(p => p.id === m.id))
+      selectedParticipants.push({ id: m.id, name: m.name, gender: m.gender, isGuest: false });
+  });
+  renderParticipantSection();
+}
+
+function openGuestModal(gender) {
+  showModal(`<h3>게스트 추가 (${gender === 'F' ? '여자' : '남자'})</h3>
+    <div class="form-group"><label>이름</label><input id="g-name" placeholder="게스트 이름"></div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">취소</button>
+    <button class="btn btn-primary" onclick="addGuest('${gender}')">추가</button></div>`);
+  setTimeout(() => {
+    const el = document.getElementById('g-name');
+    el.focus();
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addGuest(gender); } });
+  }, 100);
+}
+
+function addGuest(gender) {
+  const name = document.getElementById('g-name').value.trim();
+  if (!name) return;
+  selectedParticipants.push({ id: -Date.now() - Math.floor(Math.random()*1000), name, gender, isGuest: true });
+  renderParticipantSection(); closeModal();
+}
+
+function confirmParticipants() {
+  if (selectedParticipants.length < 4) { showToast('최소 4명의 참가자가 필요합니다.'); return; }
+  // Auto-collapse
+  participantCollapsed = true;
+  document.getElementById('participant-section').classList.add('collapsed');
+  document.getElementById('participant-toggle').textContent = '펼치기';
+  document.getElementById('draw-section').style.display = 'block';
+  initDraw();
+}
+
+// ===================== DRAW SECTION =====================
+function initDraw() {
+  drawGames = [];
+  lockedSlots = new Set();
+  for (let i = 0; i < 5; i++) {
+    drawGames.push({ court1: [null,null,null,null], court2: [null,null,null,null], wait: [] });
+  }
+  renderDrawSection();
+}
+
+function renderDrawSection() {
+  renderDrawTopMembers();
+  renderDrawGames();
+  updateStats();
+}
+
+function renderDrawTopMembers() {
+  const container = document.getElementById('draw-top-members');
+  const females = selectedParticipants.filter(p => p.gender === 'F');
+  const males = selectedParticipants.filter(p => p.gender === 'M');
+  let html = '<div class="gender-group"><span class="gender-label">여:</span>';
+  females.forEach(p => {
+    html += `<div class="member-card female drag-member" draggable="true" data-pid="${p.id}" data-pname="${p.name}" data-pgender="${p.gender}">${p.name}</div>`;
+  });
+  html += '</div><div class="gender-group"><span class="gender-label">남:</span>';
+  males.forEach(p => {
+    html += `<div class="member-card male drag-member" draggable="true" data-pid="${p.id}" data-pname="${p.name}" data-pgender="${p.gender}">${p.name}</div>`;
+  });
+  html += '</div>';
+  container.innerHTML = html;
+
+  container.querySelectorAll('.drag-member').forEach(el => {
+    el.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', JSON.stringify({
+        id: parseInt(el.dataset.pid), name: el.dataset.pname, gender: el.dataset.pgender
+      }));
+      e.dataTransfer.effectAllowed = 'copy';
+    });
+  });
+}
+
+function slotKey(gi, type, pos) { return `${gi}-${type}-${pos}`; }
+
+// Determine court type based on player genders
+function getCourtType(players) {
+  const filled = players.filter(p => p);
+  if (filled.length < 4) return '';
+  const team1 = [filled[0], filled[1]];
+  const team2 = [filled[2], filled[3]];
+  const t1f = team1.filter(p => p.gender === 'F').length;
+  const t1m = team1.filter(p => p.gender === 'M').length;
+  const t2f = team2.filter(p => p.gender === 'F').length;
+  const t2m = team2.filter(p => p.gender === 'M').length;
+
+  // Both teams are FF
+  if (t1f === 2 && t2f === 2) return 'female';
+  // Both teams are MM
+  if (t1m === 2 && t2m === 2) return 'male';
+  // Both teams are FM (mixed doubles)
+  if (t1f === 1 && t1m === 1 && t2f === 1 && t2m === 1) return 'mixed';
+  // Otherwise misc
+  return 'misc';
+}
+
+function renderDrawGames() {
+  const container = document.getElementById('draw-games');
+  let html = '';
+  const totalPlayers = selectedParticipants.length;
+  const waitPerGame = Math.max(0, totalPlayers - 8);
+
+  for (let gi = 0; gi < 5; gi++) {
+    const g = drawGames[gi];
+    const hasError = checkGameError(gi);
+    html += `<div class="game-block ${hasError ? 'error' : ''}" id="game-block-${gi}">`;
+    html += `<h4><span class="game-drag-handle" draggable="true" data-game-idx="${gi}">*${gi + 1}게임*</span></h4>`;
+
+    // Court 1
+    const c1type = getCourtType(g.court1);
+    html += `<div class="court-row ${c1type ? 'type-'+c1type : ''}"><span class="court-label">1코트</span>`;
+    for (let j = 0; j < 4; j++) {
+      html += renderSlot(gi, 'court1', j, g.court1[j]);
+      if (j === 1) html += '<span class="vs-label">VS</span>';
+    }
+    html += '</div>';
+
+    // Court 2
+    const c2type = getCourtType(g.court2);
+    html += `<div class="court-row ${c2type ? 'type-'+c2type : ''}"><span class="court-label">2코트</span>`;
+    for (let j = 0; j < 4; j++) {
+      html += renderSlot(gi, 'court2', j, g.court2[j]);
+      if (j === 1) html += '<span class="vs-label">VS</span>';
+    }
+    html += '</div>';
+
+    // Wait
+    html += '<div class="wait-row"><span class="wait-label">대기자</span>';
+    const waitSlots = Math.max(waitPerGame, g.wait.length, 1);
+    for (let j = 0; j < waitSlots; j++) {
+      html += renderSlot(gi, 'wait', j, g.wait[j] || null);
+    }
+    html += renderSlot(gi, 'wait', waitSlots, null);
+    html += '</div></div>';
+  }
+  container.innerHTML = html;
+
+  // Drop handlers
+  container.querySelectorAll('.slot').forEach(slotEl => {
+    slotEl.addEventListener('dragover', e => { e.preventDefault(); slotEl.classList.add('dragover'); });
+    slotEl.addEventListener('dragleave', () => slotEl.classList.remove('dragover'));
+    slotEl.addEventListener('drop', e => {
+      e.preventDefault();
+      slotEl.classList.remove('dragover');
+      const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+      const gi = parseInt(slotEl.dataset.gi);
+      const type = slotEl.dataset.type;
+      const pos = parseInt(slotEl.dataset.pos);
+
+      if (data.fromSlot) {
+        const srcGi = data.fromGi, srcType = data.fromType, srcPos = data.fromPos;
+        if (lockedSlots.has(slotKey(srcGi, srcType, srcPos)) || lockedSlots.has(slotKey(gi, type, pos))) return;
+        const srcArr = srcType === 'wait' ? drawGames[srcGi].wait : drawGames[srcGi][srcType];
+        const tgtArr = type === 'wait' ? drawGames[gi].wait : drawGames[gi][type];
+        const temp = tgtArr[pos] || null;
+        tgtArr[pos] = srcArr[srcPos];
+        srcArr[srcPos] = temp;
+      } else {
+        if (lockedSlots.has(slotKey(gi, type, pos))) return;
+        const arr = type === 'wait' ? drawGames[gi].wait : drawGames[gi][type];
+        arr[pos] = { id: data.id, name: data.name, gender: data.gender };
+      }
+      renderDrawGames(); updateStats();
+    });
+  });
+
+  // Drag from slots
+  container.querySelectorAll('.slot.filled').forEach(slotEl => {
+    slotEl.setAttribute('draggable', 'true');
+    slotEl.addEventListener('dragstart', e => {
+      const gi = parseInt(slotEl.dataset.gi), type = slotEl.dataset.type, pos = parseInt(slotEl.dataset.pos);
+      const arr = type === 'wait' ? drawGames[gi].wait : drawGames[gi][type];
+      const p = arr[pos];
+      e.dataTransfer.setData('text/plain', JSON.stringify({
+        id: p.id, name: p.name, gender: p.gender,
+        fromSlot: true, fromGi: gi, fromType: type, fromPos: pos
+      }));
+    });
+  });
+
+  // Game-level drag: swap entire games by dragging the title
+  container.querySelectorAll('.game-drag-handle').forEach(handle => {
+    handle.addEventListener('dragstart', e => {
+      e.stopPropagation();
+      e.dataTransfer.setData('text/plain', JSON.stringify({ gameSwap: true, fromGame: parseInt(handle.dataset.gameIdx) }));
+      e.dataTransfer.effectAllowed = 'move';
+    });
+  });
+
+  container.querySelectorAll('.game-block').forEach(block => {
+    block.addEventListener('dragover', e => {
+      // Only show game-swap visual if dragging a game handle
+      try {
+        // We can't read dataTransfer during dragover, so use a class check
+      } catch(_) {}
+      e.preventDefault();
+      block.classList.add('drag-over-game');
+    });
+    block.addEventListener('dragleave', e => {
+      block.classList.remove('drag-over-game');
+    });
+    block.addEventListener('drop', e => {
+      block.classList.remove('drag-over-game');
+      try {
+        const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+        if (data.gameSwap) {
+          e.preventDefault();
+          e.stopPropagation();
+          const fromGi = data.fromGame;
+          const toGi = parseInt(block.id.replace('game-block-', ''));
+          if (fromGi !== toGi && !isNaN(toGi)) {
+            // Swap the two games
+            const temp = drawGames[fromGi];
+            drawGames[fromGi] = drawGames[toGi];
+            drawGames[toGi] = temp;
+            // Also swap locked slots
+            const newLocked = new Set();
+            for (const key of lockedSlots) {
+              const [gi, type, pos] = parseSlotKey(key);
+              if (gi === fromGi) newLocked.add(slotKey(toGi, type, pos));
+              else if (gi === toGi) newLocked.add(slotKey(fromGi, type, pos));
+              else newLocked.add(key);
+            }
+            lockedSlots = newLocked;
+            renderDrawGames();
+            updateStats();
+            showToast(`${fromGi+1}게임 ↔ ${toGi+1}게임 교환`);
+          }
+        }
+      } catch(_) {}
+    });
+  });
+}
+
+function renderSlot(gi, type, pos, player) {
+  const key = slotKey(gi, type, pos);
+  const isLocked = lockedSlots.has(key);
+  if (player) {
+    const gc = player.gender === 'F' ? 'female' : 'male';
+    return `<div class="slot filled ${gc} ${isLocked ? 'locked' : ''}" data-gi="${gi}" data-type="${type}" data-pos="${pos}">
+      <span class="slot-name">${player.name}</span>
+      <span class="slot-menu" onclick="slotMenu(event,${gi},'${type}',${pos})">⋯</span></div>`;
+  }
+  return `<div class="slot" data-gi="${gi}" data-type="${type}" data-pos="${pos}"></div>`;
+}
+
+function slotMenu(e, gi, type, pos) {
+  e.stopPropagation(); e.preventDefault();
+  document.querySelectorAll('.dropdown').forEach(d => d.remove());
+  const key = slotKey(gi, type, pos);
+  const isLocked = lockedSlots.has(key);
+  const dd = document.createElement('div');
+  dd.className = 'dropdown'; dd.style.top = '-8px'; dd.style.right = '-8px';
+  dd.innerHTML = `
+    <div class="dropdown-item" onclick="toggleLock(${gi},'${type}',${pos})">${isLocked ? 'Unlock' : 'Lock'}</div>
+    <div class="dropdown-item danger" onclick="removeFromSlot(${gi},'${type}',${pos})">취소</div>`;
+  e.target.closest('.slot').appendChild(dd);
+  setTimeout(() => document.addEventListener('click', function handler() { dd.remove(); document.removeEventListener('click', handler); }), 0);
+}
+
+function toggleLock(gi, type, pos) {
+  const key = slotKey(gi, type, pos);
+  if (lockedSlots.has(key)) lockedSlots.delete(key); else lockedSlots.add(key);
+  renderDrawGames();
+}
+
+function removeFromSlot(gi, type, pos) {
+  if (lockedSlots.has(slotKey(gi, type, pos))) return;
+  if (type === 'wait') {
+    drawGames[gi].wait[pos] = null;
+    drawGames[gi].wait = drawGames[gi].wait.filter(x => x !== null);
+  } else {
+    drawGames[gi][type][pos] = null;
+  }
+  renderDrawGames(); updateStats();
+}
+
+function checkGameError(gi) {
+  const g = drawGames[gi];
+  const allInGame = [...g.court1, ...g.court2, ...g.wait].filter(p => p);
+  const ids = allInGame.map(p => p.id);
+  return ids.length !== new Set(ids).size;
+}
+
+// ===================== DRAW GENERATION =====================
+function selectOption(el) {
+  document.querySelectorAll('.option-group .opt-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  currentOption = el.dataset.opt;
+}
+
+function resetDraw() { initDraw(); }
+
+function generateDraw() {
+  const players = [...selectedParticipants];
+  const n = players.length;
+  if (n < 4) { showToast('참가자가 부족합니다.'); return; }
+
+  const numGames = 5;
+  const mixedCount = parseInt(document.getElementById('mixed-count').value) || 0;
+
+  let histPairMatrix = {}, histOppMatrix = {};
+  if (currentOption === 'history') {
+    const result = computeCumulativeMatrices();
+    histPairMatrix = result.pair;
+    histOppMatrix = result.opp;
+  }
+
+  let bestAssignment = null;
+  let bestScore = Infinity;
+  const attempts = currentOption === 'random' ? 1 : 300;
+
+  const females = players.filter(p => p.gender === 'F');
+  const males = players.filter(p => p.gender === 'M');
+
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const assignment = generateSmartAssignment(players, females, males, numGames, mixedCount);
+    if (!assignment) continue;
+
+    // Respect locked slots: only swap WITHIN same category (court↔court, wait↔wait)
+    // This preserves game count fairness since we never move between playing and waiting
+    let valid = true;
+    for (const key of lockedSlots) {
+      const [gi, type, pos] = parseSlotKey(key);
+      const locked = type === 'wait' ? drawGames[gi].wait[pos] : drawGames[gi][type][pos];
+      if (!locked) continue;
+
+      const arr = type === 'wait' ? assignment[gi].wait : assignment[gi][type];
+      if (arr[pos] && arr[pos].id === locked.id) continue; // already correct
+
+      // Find this locked player in the SAME category (courts or wait) and swap
+      const currentHolder = arr[pos];
+      let swapped = false;
+
+      if (type === 'wait') {
+        // Search only in wait
+        for (let p = 0; p < assignment[gi].wait.length; p++) {
+          if (assignment[gi].wait[p] && assignment[gi].wait[p].id === locked.id && !lockedSlots.has(slotKey(gi, 'wait', p))) {
+            assignment[gi].wait[p] = currentHolder;
+            arr[pos] = locked;
+            swapped = true; break;
+          }
+        }
+      } else {
+        // Search in court1 and court2 (playing slots only)
+        for (const ct of ['court1', 'court2']) {
+          for (let p = 0; p < 4; p++) {
+            if (assignment[gi][ct][p] && assignment[gi][ct][p].id === locked.id && !lockedSlots.has(slotKey(gi, ct, p))) {
+              assignment[gi][ct][p] = currentHolder;
+              arr[pos] = locked;
+              swapped = true; break;
+            }
+          }
+          if (swapped) break;
+        }
+      }
+      if (!swapped) { valid = false; break; }
+    }
+    if (!valid) continue;
+
+    const score = scoreAssignment(assignment, players, histPairMatrix, histOppMatrix);
+    if (score < bestScore) {
+      bestScore = score;
+      bestAssignment = assignment;
+    }
+  }
+
+  if (!bestAssignment) {
+    bestAssignment = generateSmartAssignment(players, females, males, numGames, mixedCount);
+  }
+
+  if (bestAssignment) {
+    for (let gi = 0; gi < numGames; gi++) {
+      drawGames[gi] = bestAssignment[gi];
+    }
+    renderDrawGames(); updateStats();
+    showToast('대진표가 생성되었습니다.');
+  }
+}
+
+function parseSlotKey(key) {
+  const parts = key.split('-');
+  return [parseInt(parts[0]), parts[1], parseInt(parts[2])];
+}
+
+// ---- Phase 1: Decide WHO plays/waits each game (guarantees game count fairness) ----
+function allocatePlayersPerGame(players, numGames) {
+  const n = players.length;
+  const slotsPerGame = Math.min(8, n);
+  const totalSlots = slotsPerGame * numGames;
+  const baseGames = Math.floor(totalSlots / n);
+  const extraCount = totalSlots % n; // this many players get baseGames+1
+
+  // Assign target: guests get ceil first
+  const guests = players.filter(p => p.isGuest);
+  const regulars = [...players.filter(p => !p.isGuest)].sort(() => Math.random() - 0.5);
+  const ordered = [...guests, ...regulars];
+  const targetGames = {};
+  let extras = extraCount;
+  ordered.forEach(p => {
+    targetGames[p.id] = extras > 0 ? baseGames + 1 : baseGames;
+    if (extras > 0) extras--;
+  });
+
+  // Build a play matrix: playMatrix[gi] = set of player ids playing game gi
+  // Use constraint satisfaction: try many random shuffles, pick one where all targets are met
+  let bestRosters = null;
+
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const remaining = {};
+    players.forEach(p => { remaining[p.id] = targetGames[p.id]; });
+
+    const rosters = [];
+    let failed = false;
+
+    for (let gi = 0; gi < numGames; gi++) {
+      // Candidates sorted by: remaining desc, then random
+      const candidates = [...players].sort((a, b) => {
+        const diff = remaining[b.id] - remaining[a.id];
+        return diff !== 0 ? diff : Math.random() - 0.5;
+      });
+
+      const playing = candidates.slice(0, slotsPerGame);
+      const waiting = candidates.slice(slotsPerGame);
+      playing.forEach(p => { remaining[p.id]--; });
+
+      rosters.push({ playing, waiting });
+    }
+
+    // Verify: all remaining should be exactly 0
+    const allZero = players.every(p => remaining[p.id] === 0);
+    if (allZero) {
+      bestRosters = rosters;
+      break;
+    }
+    // Keep best attempt (closest to zero)
+    if (!bestRosters) bestRosters = rosters;
+  }
+
+  return bestRosters;
+}
+
+// ---- Phase 2: Arrange 8 playing players into courts (gender-aware) ----
+function arrangeCourts(playing, isMixed) {
+  const f = playing.filter(p => p.gender === 'F');
+  const m = playing.filter(p => p.gender === 'M');
+
+  if (isMixed) {
+    // Mixed doubles: each team = 1F + 1M
+    const sf = [...f].sort(() => Math.random() - 0.5);
+    const sm = [...m].sort(() => Math.random() - 0.5);
+    if (sf.length >= 2 && sm.length >= 2) {
+      const court1 = [sf[0], sm[0], sf[1], sm[1]];
+      const usedIds = new Set(court1.map(p => p.id));
+      const remF = sf.filter(p => !usedIds.has(p.id));
+      const remM = sm.filter(p => !usedIds.has(p.id));
+      if (remF.length >= 2 && remM.length >= 2) {
+        return { court1, court2: [remF[0], remM[0], remF[1], remM[1]] };
+      }
+      const rem = playing.filter(p => !usedIds.has(p.id)).sort(() => Math.random() - 0.5);
+      return { court1, court2: [rem[0]||null, rem[1]||null, rem[2]||null, rem[3]||null] };
+    }
+    // Not enough for proper mixed, fallback
+    const all = [...playing].sort(() => Math.random() - 0.5);
+    return { court1: all.slice(0,4), court2: [all[4]||null, all[5]||null, all[6]||null, all[7]||null] };
+  }
+
+  // Non-mixed: try gender-pure courts
+  const sf = [...f].sort(() => Math.random() - 0.5);
+  const sm = [...m].sort(() => Math.random() - 0.5);
+
+  if (sf.length >= 4 && sm.length >= 4) {
+    // Perfect: one women's court, one men's court
+    return {
+      court1: [sf[0], sf[1], sf[2], sf[3]],
+      court2: [sm[0], sm[1], sm[2], sm[3]]
+    };
+  }
+  if (sf.length >= 4) {
+    const court1 = [sf[0], sf[1], sf[2], sf[3]];
+    const rem = playing.filter(p => !court1.some(c => c.id === p.id)).sort(() => Math.random() - 0.5);
+    return { court1, court2: [rem[0]||null, rem[1]||null, rem[2]||null, rem[3]||null] };
+  }
+  if (sm.length >= 4) {
+    const court1 = [sm[0], sm[1], sm[2], sm[3]];
+    const rem = playing.filter(p => !court1.some(c => c.id === p.id)).sort(() => Math.random() - 0.5);
+    return { court1, court2: [rem[0]||null, rem[1]||null, rem[2]||null, rem[3]||null] };
+  }
+
+  // Not enough for pure courts: group same gender on same team to minimize 잡복
+  // Try: team = same gender pair if possible
+  const all = [...playing].sort(() => Math.random() - 0.5);
+  const afem = all.filter(p => p.gender === 'F');
+  const amal = all.filter(p => p.gender === 'M');
+
+  // Build teams of 2, preferring same-gender pairs
+  const teams = [];
+  const usedIds = new Set();
+  // Pair up females
+  for (let i = 0; i + 1 < afem.length; i += 2) {
+    teams.push([afem[i], afem[i+1]]);
+    usedIds.add(afem[i].id); usedIds.add(afem[i+1].id);
+  }
+  // Pair up males
+  for (let i = 0; i + 1 < amal.length; i += 2) {
+    teams.push([amal[i], amal[i+1]]);
+    usedIds.add(amal[i].id); usedIds.add(amal[i+1].id);
+  }
+  // Remaining unpaired
+  const unpaired = all.filter(p => !usedIds.has(p.id));
+  for (let i = 0; i + 1 < unpaired.length; i += 2) {
+    teams.push([unpaired[i], unpaired[i+1]]);
+  }
+  if (unpaired.length % 2 === 1) {
+    // Odd one out - attach to last team or create partial
+    if (teams.length > 0) teams[teams.length-1].push(unpaired[unpaired.length-1]);
+    else teams.push([unpaired[0]]);
+  }
+
+  // Shuffle teams and assign to courts
+  teams.sort(() => Math.random() - 0.5);
+  const c1 = [...(teams[0]||[]), ...(teams[1]||[])];
+  const c2 = [...(teams[2]||[]), ...(teams[3]||[])];
+  return {
+    court1: [c1[0]||null, c1[1]||null, c1[2]||null, c1[3]||null],
+    court2: [c2[0]||null, c2[1]||null, c2[2]||null, c2[3]||null]
+  };
+}
+
+function generateSmartAssignment(players, females, males, numGames, mixedCount) {
+  // Phase 1: fair game count allocation
+  const rosters = allocatePlayersPerGame(players, numGames);
+
+  // Decide which games are mixed
+  const mixedGames = Math.min(mixedCount, numGames);
+  const gameIndices = [0,1,2,3,4];
+  for (let i = gameIndices.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [gameIndices[i], gameIndices[j]] = [gameIndices[j], gameIndices[i]];
+  }
+  const mixedGameSet = new Set(gameIndices.slice(0, mixedGames));
+
+  // Phase 2: arrange courts per game
+  const assignment = [];
+  for (let gi = 0; gi < numGames; gi++) {
+    const { playing, waiting } = rosters[gi];
+    const isMixed = mixedGameSet.has(gi);
+    const { court1, court2 } = arrangeCourts(playing, isMixed);
+    assignment.push({ court1, court2, wait: waiting.map(p => ({...p})) });
+  }
+  return assignment;
+}
+
+function scoreAssignment(assignment, players, histPair, histOpp) {
+  const pairCount = {}, oppCount = {}, gameCount = {}, waitCount = {};
+  let miscPenalty = 0;
+
+  players.forEach(p => { gameCount[p.id] = 0; waitCount[p.id] = 0; });
+
+  for (let gi = 0; gi < assignment.length; gi++) {
+    const g = assignment[gi];
+    for (const court of ['court1', 'court2']) {
+      const c = g[court].filter(p => p);
+      if (c.length >= 2) addPair(pairCount, c[0], c[1]);
+      if (c.length >= 4) addPair(pairCount, c[2], c[3]);
+      for (let a = 0; a < 2; a++) {
+        for (let b = 2; b < 4; b++) {
+          if (c[a] && c[b]) addPair(oppCount, c[a], c[b]);
+        }
+      }
+      c.forEach(p => { if (p) gameCount[p.id] = (gameCount[p.id]||0) + 1; });
+      if (c.length === 4) {
+        const type = getCourtType(c);
+        if (type === 'misc') miscPenalty += 20;
+      }
+    }
+    g.wait.forEach(p => { if (p) waitCount[p.id] = (waitCount[p.id]||0) + 1; });
+  }
+
+  // Score: game count is already guaranteed by allocation, focus on court arrangement quality
+  let score = miscPenalty;
+  const pairVals = Object.values(pairCount);
+  const oppVals = Object.values(oppCount);
+
+  if (currentOption === 'pair' || currentOption === 'history') {
+    score += variance(pairVals) * 10 + variance(oppVals) * 3;
+  } else if (currentOption === 'opponent') {
+    score += variance(oppVals) * 10 + variance(pairVals) * 3;
+  }
+
+  if (currentOption === 'history') {
+    for (const key in pairCount) {
+      if (histPair[key]) score += (pairCount[key] + histPair[key]) * 0.5;
+    }
+    for (const key in oppCount) {
+      if (histOpp[key]) score += (oppCount[key] + histOpp[key]) * 0.5;
+    }
+  }
+
+  return score;
+}
+
+function addPair(obj, a, b) {
+  if (!a || !b) return;
+  const key = [a.id, b.id].sort().join('-');
+  obj[key] = (obj[key] || 0) + 1;
+}
+
+function variance(arr) {
+  if (arr.length === 0) return 0;
+  const mean = arr.reduce((s, v) => s + v, 0) / arr.length;
+  return arr.reduce((s, v) => s + (v - mean) ** 2, 0) / arr.length;
+}
+
+// ===================== STATS & MATRICES =====================
+function updateStats() {
+  const players = [...selectedParticipants];
+  const gameCount = {}, waitCount = {}, pairMatrix = {}, oppMatrix = {};
+  players.forEach(p => { gameCount[p.id] = 0; waitCount[p.id] = 0; });
+
+  for (let gi = 0; gi < drawGames.length; gi++) {
+    const g = drawGames[gi];
+    for (const court of ['court1', 'court2']) {
+      const c = g[court].filter(p => p);
+      c.forEach(p => { gameCount[p.id] = (gameCount[p.id]||0) + 1; });
+      if (c.length >= 2) incMatrix(pairMatrix, c[0].id, c[1].id);
+      if (c.length >= 4) incMatrix(pairMatrix, c[2].id, c[3].id);
+      for (let a = 0; a < 2; a++) for (let b = 2; b < 4; b++) if (c[a] && c[b]) incMatrix(oppMatrix, c[a].id, c[b].id);
+    }
+    g.wait.forEach(p => { if (p) waitCount[p.id] = (waitCount[p.id]||0) + 1; });
+  }
+
+  renderStatsTable(players, gameCount, waitCount);
+  renderMatrix('pair-matrix', players, pairMatrix);
+  renderMatrix('opponent-matrix', players, oppMatrix);
+}
+
+function incMatrix(m, a, b) { const key = [a,b].sort().join('-'); m[key] = (m[key]||0) + 1; }
+function getMatrixVal(m, a, b) { return m[[a,b].sort().join('-')] || 0; }
+
+function renderStatsTable(players, gameCount, waitCount) {
+  const ordered = [...players.filter(p => p.gender === 'F'), ...players.filter(p => p.gender === 'M')];
+  let html = '<table class="stats-table"><tr><th>멤버</th><th>게임수</th><th>대기수</th></tr>';
+  ordered.forEach(p => { html += `<tr><td class="name-col">${p.name}</td><td>${gameCount[p.id]||0}</td><td>${waitCount[p.id]||0}</td></tr>`; });
+  html += '</table>';
+  document.getElementById('stats-table-wrapper').innerHTML = html;
+}
+
+function renderMatrix(containerId, players, matrix) {
+  const ordered = [...players.filter(p => p.gender === 'F'), ...players.filter(p => p.gender === 'M')];
+  const n = ordered.length;
+  let maxVal = 0;
+  for (let i = 0; i < n; i++) for (let j = i+1; j < n; j++) { const v = getMatrixVal(matrix, ordered[i].id, ordered[j].id); if (v > maxVal) maxVal = v; }
+
+  let html = '<table class="matrix-table"><tr><th></th>';
+  ordered.forEach(p => { html += `<th>${p.name}</th>`; });
+  html += '</tr>';
+  for (let i = 0; i < n; i++) {
+    html += `<tr><th>${ordered[i].name}</th>`;
+    for (let j = 0; j < n; j++) {
+      if (i === j) { html += '<td class="diag"></td>'; }
+      else {
+        const v = getMatrixVal(matrix, ordered[i].id, ordered[j].id);
+        html += `<td style="background:${v > 0 ? matrixColor(v, maxVal) : '#fff'}">${v || ''}</td>`;
+      }
+    }
+    html += '</tr>';
+  }
+  html += '</table>';
+  document.getElementById(containerId).innerHTML = html;
+}
+
+function matrixColor(val, max) {
+  if (max === 0) return '#fff';
+  const ratio = val / max;
+  const r = Math.round(255 - ratio * 150);
+  const g = Math.round(255 - ratio * 30);
+  const b = Math.round(255 - ratio * 150);
+  return `rgb(${r},${g},${b})`;
+}
+
+// ===================== SAVE / LOAD =====================
+async function saveDraw() {
+  const date = document.getElementById('game-date').value;
+  if (!date) { showToast('게임 날짜를 선택해주세요.'); return; }
+  const drawData = {
+    date, participants: [...selectedParticipants],
+    games: JSON.parse(JSON.stringify(drawGames)),
+    savedAt: new Date().toISOString()
+  };
+  savedDraws[date] = drawData;
+  showToast('저장 중...');
+  await saveDrawToAirtable(date, drawData);
+  showToast(`${date} 대진표가 저장되었습니다.`);
+}
+
+function loadDraw(date) {
+  const data = savedDraws[date];
+  if (!data) return;
+  selectedParticipants = [...data.participants];
+  drawGames = JSON.parse(JSON.stringify(data.games));
+  lockedSlots = new Set();
+  document.getElementById('game-date').value = data.date;
+
+  document.querySelectorAll('.sidebar-menu li').forEach(l => l.classList.remove('active'));
+  document.querySelector('[data-page="draw"]').classList.add('active');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-draw').classList.add('active');
+
+  participantCollapsed = true;
+  document.getElementById('participant-section').classList.add('collapsed');
+  document.getElementById('participant-toggle').textContent = '펼치기';
+  document.getElementById('draw-section').style.display = 'block';
+  renderParticipantSection();
+  renderDrawSection();
+}
+
+function exportPDF() {
+  const date = document.getElementById('game-date').value || new Date().toISOString().slice(0,10);
+  const players = [...selectedParticipants];
+  const females = players.filter(p => p.gender === 'F');
+  const males = players.filter(p => p.gender === 'M');
+
+  const gameCount = {};
+  players.forEach(p => { gameCount[p.id] = 0; });
+  drawGames.forEach(g => {
+    for (const court of ['court1','court2']) {
+      g[court].filter(p => p).forEach(p => { gameCount[p.id] = (gameCount[p.id]||0) + 1; });
+    }
+  });
+
+  let html = '<div class="print-page">';
+  html += `<div class="print-header">
+    <span class="print-logo">TOYOTE</span>
+    <h1>${date.replace(/-/g,'.')} 대진표</h1>
+    <span class="print-logo">TOYOTE</span>
+  </div>`;
+
+  html += '<div class="print-body">';
+
+  // Left: games
+  html += '<div class="print-games"><h3 style="text-align:center;margin-bottom:14px;">&lt;게임 순서&gt;</h3>';
+  for (let gi = 0; gi < drawGames.length; gi++) {
+    const g = drawGames[gi];
+    html += `<div class="print-game"><h3>*${gi+1}게임*</h3><table>`;
+    for (const court of ['court1','court2']) {
+      const c = g[court];
+      const courtNum = court === 'court1' ? '1코트' : '2코트';
+      const ctype = getCourtType(c);
+      const bgClass = ctype ? 'bg-' + ctype : '';
+
+      html += `<tr>
+        <td class="court-label-cell">${courtNum}</td>
+        <td class="player-cell ${bgClass}">${c[0] ? c[0].name : ''}</td>
+        <td class="player-cell ${bgClass}">${c[1] ? c[1].name : ''}</td>
+        <td class="vs-cell">VS</td>
+        <td class="player-cell ${bgClass}">${c[2] ? c[2].name : ''}</td>
+        <td class="player-cell ${bgClass}">${c[3] ? c[3].name : ''}</td>
+      </tr>`;
+    }
+    html += '</table>';
+    const waiters = g.wait.filter(p => p).map(p => p.name).join(', ');
+    html += `<div class="print-wait">대기자 : ${waiters || '-'}</div>`;
+    html += '</div>';
+  }
+  html += '</div>';
+
+  // Right: game count
+  html += '<div class="print-stats"><h3>&lt;게임 수&gt;</h3><table>';
+  const orderedForPrint = [...males, null, ...females];
+  orderedForPrint.forEach(p => {
+    if (p === null) {
+      html += '<tr><td style="border:none;height:8px;" colspan="2"></td></tr>';
+    } else {
+      html += `<tr><td class="name-cell">${p.name}</td><td>${gameCount[p.id] || 0}</td></tr>`;
+    }
+  });
+  html += '</table></div>';
+
+  html += '</div>';
+
+  html += `<div class="print-footer">
+    * 게임 전 몸풀기 10분 / 노에드 경기 / 5:5 상황시 무승부 마무리<br>
+    * 6게임은 현장에서 결정<br>
+    * 당일 상황에 따라 변동될 수 있습니다!
+  </div>`;
+
+  html += '</div>';
+
+  const printArea = document.getElementById('print-area');
+  printArea.innerHTML = html;
+  printArea.style.display = 'block';
+
+  // Use html2canvas to export as JPG
+  if (typeof html2canvas === 'undefined') {
+    // Load html2canvas dynamically
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    script.onload = () => captureAndDownload(printArea, date);
+    document.head.appendChild(script);
+  } else {
+    captureAndDownload(printArea, date);
+  }
+}
+
+function captureAndDownload(el, date) {
+  html2canvas(el, {
+    scale: 2,
+    backgroundColor: '#ffffff',
+    useCORS: true,
+    scrollY: 0,
+    scrollX: 0,
+    windowWidth: el.scrollWidth,
+    windowHeight: el.scrollHeight,
+    height: el.scrollHeight,
+    width: el.scrollWidth
+  }).then(canvas => {
+    el.style.display = 'none';
+    const link = document.createElement('a');
+    link.download = `${date.replace(/-/g,'.')}_대진표.jpg`;
+    link.href = canvas.toDataURL('image/jpeg', 0.95);
+    link.click();
+    showToast('이미지가 저장되었습니다.');
+  }).catch(err => {
+    el.style.display = 'none';
+    console.error(err);
+    showToast('이미지 생성 실패. 다시 시도해주세요.');
+  });
+}
+
+// ===================== HISTORY =====================
+let historyMonth = new Date();
+let historySelectedDate = null;
+
+function renderHistory() {
+  renderCalendar();
+  renderCumulativeMatrices();
+  if (historySelectedDate) renderSavedDrawView(historySelectedDate);
+}
+
+function renderCalendar() {
+  const container = document.getElementById('history-calendar');
+  const year = historyMonth.getFullYear(), month = historyMonth.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const today = new Date();
+
+  let html = `<div class="calendar-header">
+    <button class="btn btn-sm btn-outline" onclick="changeMonth(-1)">◀</button>
+    <strong>${year}년 ${month+1}월</strong>
+    <button class="btn btn-sm btn-outline" onclick="changeMonth(1)">▶</button></div>`;
+  html += '<div class="calendar-grid">';
+  ['일','월','화','수','목','금','토'].forEach(d => { html += `<div class="day-header">${d}</div>`; });
+  for (let i = 0; i < firstDay; i++) html += '<div class="day-cell other-month"></div>';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday = today.getFullYear()===year && today.getMonth()===month && today.getDate()===d;
+    const hasGame = savedDraws[dateStr] !== undefined;
+    const isSelected = historySelectedDate === dateStr;
+    html += `<div class="day-cell ${isToday?'today':''} ${hasGame?'has-game':''} ${isSelected?'selected':''}" onclick="selectHistoryDate('${dateStr}')">${d}</div>`;
+  }
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function changeMonth(delta) { historyMonth.setMonth(historyMonth.getMonth() + delta); renderCalendar(); }
+
+function selectHistoryDate(dateStr) {
+  historySelectedDate = dateStr;
+  renderCalendar();
+  renderSavedDrawView(dateStr);
+}
+
+function renderSavedDrawView(dateStr) {
+  const container = document.getElementById('saved-draw-view');
+  const data = savedDraws[dateStr];
+  if (!data) { container.innerHTML = '<p style="color:#999;">해당 날짜에 저장된 대진표가 없습니다.</p>'; return; }
+
+  let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <h3>${data.date} 대진표</h3>
+    <div><button class="btn btn-sm btn-outline" onclick="loadDraw('${data.date}')">수정하기</button>
+    <button class="btn btn-sm btn-danger" onclick="deleteDraw('${data.date}')">삭제</button></div></div>`;
+
+  for (let gi = 0; gi < data.games.length; gi++) {
+    const g = data.games[gi];
+    html += `<div style="margin-bottom:8px;padding:6px;background:#fafafa;border-radius:6px;font-size:0.85em;">`;
+    html += `<strong>*${gi+1}게임*</strong><br>`;
+    html += `1코트: ${courtStr(g.court1)}<br>`;
+    html += `2코트: ${courtStr(g.court2)}<br>`;
+    if (g.wait.length > 0) html += `<span style="color:#e67e22;">대기자: ${g.wait.filter(p=>p).map(p=>p.name).join(', ')}</span>`;
+    html += '</div>';
+  }
+  container.innerHTML = html;
+}
+
+function courtStr(court) {
+  const t1 = court.slice(0,2).filter(p=>p).map(p=>p.name).join(', ');
+  const t2 = court.slice(2,4).filter(p=>p).map(p=>p.name).join(', ');
+  return `${t1}  VS  ${t2}`;
+}
+
+async function deleteDraw(date) {
+  if (!confirm(`${date} 대진표를 삭제하시겠습니까?`)) return;
+  delete savedDraws[date];
+  renderHistory();
+  showToast('삭제 중...');
+  await deleteDrawFromAirtable(date);
+  showToast('대진표가 삭제되었습니다.');
+}
+
+// ===================== CUMULATIVE MATRICES =====================
+function computeCumulativeMatrices() {
+  const pair = {}, opp = {};
+  Object.values(savedDraws).forEach(data => {
+    data.games.forEach(g => {
+      for (const court of ['court1','court2']) {
+        const c = g[court].filter(p => p);
+        if (c.length >= 2) { const k = [c[0].id,c[1].id].sort().join('-'); pair[k]=(pair[k]||0)+1; }
+        if (c.length >= 4) { const k = [c[2].id,c[3].id].sort().join('-'); pair[k]=(pair[k]||0)+1; }
+        for (let a=0;a<2;a++) for (let b=2;b<4;b++) if (c[a]&&c[b]) { const k=[c[a].id,c[b].id].sort().join('-'); opp[k]=(opp[k]||0)+1; }
+      }
+    });
+  });
+  return { pair, opp };
+}
+
+function renderCumulativeMatrices() {
+  const { pair, opp } = computeCumulativeMatrices();
+  const playerMap = {};
+  Object.values(savedDraws).forEach(data => { data.participants.forEach(p => { playerMap[p.id] = p; }); });
+  members.forEach(m => { playerMap[m.id] = { id: m.id, name: m.name, gender: m.gender }; });
+
+  const all = Object.values(playerMap);
+  const ordered = [...all.filter(p => p.gender==='F'), ...all.filter(p => p.gender==='M')];
+  renderMatrixTo('cum-pair-matrix', ordered, pair);
+  renderMatrixTo('cum-opponent-matrix', ordered, opp);
+}
+
+function renderMatrixTo(containerId, ordered, matrix) {
+  const n = ordered.length;
+  let maxVal = 0;
+  for (let i=0;i<n;i++) for (let j=i+1;j<n;j++) { const v = getMatrixVal(matrix,ordered[i].id,ordered[j].id); if (v>maxVal) maxVal=v; }
+
+  let html = '<table class="matrix-table"><tr><th></th>';
+  ordered.forEach(p => { html += `<th>${p.name}</th>`; });
+  html += '</tr>';
+  for (let i=0;i<n;i++) {
+    html += `<tr><th>${ordered[i].name}</th>`;
+    for (let j=0;j<n;j++) {
+      if (i===j) { html += '<td class="diag"></td>'; }
+      else {
+        const v = getMatrixVal(matrix,ordered[i].id,ordered[j].id);
+        html += `<td style="background:${v>0?matrixColor(v,maxVal):'#fff'}">${v||''}</td>`;
+      }
+    }
+    html += '</tr>';
+  }
+  html += '</table>';
+  document.getElementById(containerId).innerHTML = html;
+}
+
+// ===================== INIT =====================
+document.getElementById('game-date').valueAsDate = new Date();
+loadAllData();
+</script>
+</body>
+</html>
