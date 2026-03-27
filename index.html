@@ -1966,12 +1966,9 @@ function computeCumulativeMatrices() {
 
 function renderCumulativeMatrices() {
   const { pair, opp } = computeCumulativeMatrices();
-  const playerMap = {};
-  Object.values(savedDraws).forEach(data => { data.participants.forEach(p => { playerMap[p.id] = p; }); });
-  members.forEach(m => { playerMap[m.id] = { id: m.id, name: m.name, gender: m.gender }; });
-
-  const all = Object.values(playerMap);
-  const ordered = [...all.filter(p => p.gender==='F'), ...all.filter(p => p.gender==='M')];
+  // Only registered members (exclude guests with negative ids)
+  const memberIds = new Set(members.map(m => m.id));
+  const ordered = [...members.filter(m => m.gender==='F'), ...members.filter(m => m.gender==='M')];
   renderMatrixTo('cum-pair-matrix', ordered, pair);
   renderMatrixTo('cum-opponent-matrix', ordered, opp);
 }
