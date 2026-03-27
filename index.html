@@ -770,6 +770,7 @@ let dataLoaded = false;
 async function loadAllData() {
   document.getElementById('loading-overlay').classList.add('show');
   startBallRain();
+  const minDelay = new Promise(r => setTimeout(r, 3000));
   try {
     await Promise.all([loadMembers(), loadDraws(), loadConfig(), loadPosts(), loadGuests()]);
     dataLoaded = true;
@@ -779,6 +780,7 @@ async function loadAllData() {
     console.error(e);
     showToast('데이터 로드 실패');
   }
+  await minDelay;
   stopBallRain();
   document.getElementById('loading-overlay').classList.remove('show');
 }
