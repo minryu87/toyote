@@ -231,6 +231,25 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: fl
 .print-stats .name-cell { text-align: left; }
 .print-footer { margin-top: 24px; font-size: 0.82em; color: #e67e22; line-height: 1.6; }
 
+/* Guest management */
+.guest-layout { display: flex; gap: 24px; }
+.guest-left { width: 480px; flex-shrink: 0; }
+.guest-right { flex: 1; min-width: 0; background: #fff; border-radius: 12px; padding: 16px; border: 1px solid #e0e0e0; }
+.guest-date-section { background: #fff; border-radius: 10px; padding: 14px; border: 1px solid #e0e0e0; }
+.guest-date-section h4 { margin-bottom: 10px; font-size: 0.95em; }
+.guest-card { display: inline-flex; align-items: center; background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 6px 12px; margin: 3px; font-size: 0.85em; position: relative; }
+.guest-card.female { border-left: 3px solid #e91e63; }
+.guest-card.male { border-left: 3px solid #2196f3; }
+.guest-card .guest-memo { font-size: 0.75em; color: #999; margin-left: 6px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.guest-card .card-menu { cursor: pointer; color: #999; font-size: 1.1em; padding: 0 4px; }
+.guest-card .card-menu:hover { color: #333; }
+.guest-history-item { padding: 10px 12px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 0.88em; }
+.guest-history-item:hover { background: #f9f9f9; }
+.guest-history-item .gh-name { font-weight: 500; }
+.guest-history-item .gh-count { color: #2ecc71; font-weight: 600; }
+.guest-history-item .gh-gender { font-size: 0.75em; color: #999; margin-left: 4px; }
+.guest-history-detail { padding: 8px 12px 12px 24px; font-size: 0.82em; color: #666; border-bottom: 1px solid #eee; background: #fafafa; }
+
 /* Board */
 .board-layout { display: flex; gap: 20px; }
 .board-left { flex: 0 0 60%; min-width: 0; }
@@ -287,6 +306,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: fl
   <ul class="sidebar-menu">
     <li class="active" data-page="history">대시보드</li>
     <li data-page="members">멤버 관리</li>
+    <li data-page="guests">게스트 관리</li>
     <li data-page="draw">대진표 작성</li>
     <li data-page="board">게시판</li>
     <li data-page="guide">이용 가이드</li>
@@ -310,6 +330,27 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: fl
         <h3 class="male-title">남자</h3>
         <button class="btn-add" onclick="openMemberModal('M')">+</button>
         <div class="cards-area" id="male-members"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 게스트 관리 ========== -->
+  <div id="page-guests" class="page">
+    <div class="page-title">게스트 관리</div>
+    <div class="guest-layout">
+      <div class="guest-left">
+        <!-- Calendar -->
+        <div class="date-picker-section" style="margin-bottom:12px;">
+          <label style="font-weight:600;">날짜 선택:</label>
+          <input type="date" id="guest-date" onchange="selectGuestDate(this.value)">
+        </div>
+        <div class="calendar" id="guest-calendar"></div>
+        <!-- Guest registration for selected date -->
+        <div id="guest-date-panel" style="margin-top:12px;"></div>
+      </div>
+      <div class="guest-right">
+        <div class="section-title" style="font-size:0.95em;">게스트 히스토리 (참여 횟수순)</div>
+        <div id="guest-history-list"></div>
       </div>
     </div>
   </div>
@@ -342,7 +383,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: fl
             </div>
           </div>
           <div class="participant-col">
-            <h4>참가 멤버</h4>
+            <h4>참가 멤버 <button class="btn btn-sm btn-outline" onclick="loadGuestsForDraw()" style="margin-left:8px;font-size:0.8em;">게스트 불러오기</button></h4>
             <div style="margin-bottom:6px;">
               <div style="font-size:0.78em;color:#c2185b;margin-bottom:3px;">여자 <button class="btn-add" style="width:20px;height:20px;font-size:0.8em;" onclick="openGuestModal('F')">+</button> <span style="color:#999;font-size:0.72em;">게스트</span></div>
               <div id="sel-female" class="cards-area"></div>
@@ -625,7 +666,7 @@ let dataLoaded = false;
 async function loadAllData() {
   showToast('데이터 로딩 중...');
   try {
-    await Promise.all([loadMembers(), loadDraws(), loadConfig(), loadPosts()]);
+    await Promise.all([loadMembers(), loadDraws(), loadConfig(), loadPosts(), loadGuests()]);
     dataLoaded = true;
     renderMembers();
     renderHistory();
@@ -772,6 +813,7 @@ document.querySelectorAll('.sidebar-menu li').forEach(li => {
     document.getElementById('page-' + li.dataset.page).classList.add('active');
     if (li.dataset.page === 'draw') renderParticipantSection();
     if (li.dataset.page === 'history') renderHistory();
+    if (li.dataset.page === 'guests') renderGuestPage();
     if (li.dataset.page === 'board') renderBoard();
   });
 });
@@ -967,6 +1009,23 @@ function addGuest(gender) {
   if (!name) return;
   selectedParticipants.push({ id: -Date.now() - Math.floor(Math.random()*1000), name, gender, isGuest: true });
   renderParticipantSection(); closeModal();
+}
+
+function loadGuestsForDraw() {
+  const date = document.getElementById('game-date').value;
+  if (!date) { showToast('게임 날짜를 먼저 선택해주세요.'); return; }
+  const dateGuests = getGuestsForDate(date);
+  if (dateGuests.length === 0) { showToast('해당 날짜에 등록된 게스트가 없습니다.'); return; }
+  let added = 0;
+  dateGuests.forEach(g => {
+    const alreadyExists = selectedParticipants.some(p => p.isGuest && p.name === g.name && p.gender === g.gender);
+    if (!alreadyExists) {
+      selectedParticipants.push({ id: -Date.now() - Math.floor(Math.random()*1000), name: g.name, gender: g.gender, isGuest: true });
+      added++;
+    }
+  });
+  renderParticipantSection();
+  showToast(`게스트 ${added}명이 추가되었습니다.`);
 }
 
 function confirmParticipants() {
@@ -1994,6 +2053,224 @@ function renderMatrixTo(containerId, ordered, matrix) {
   }
   html += '</table>';
   document.getElementById(containerId).innerHTML = html;
+}
+
+// ===================== GUEST MANAGEMENT =====================
+let guestRecords = []; // {id(airtable), date, name, gender, memo}
+let guestMonth = new Date();
+let guestSelectedDate = null;
+let expandedGuestName = null;
+
+async function loadGuests() {
+  guestRecords = [];
+  let offset = null;
+  do {
+    const url = offset ? `Guests?offset=${offset}` : 'Guests';
+    const data = await atFetch(url);
+    if (!data) break;
+    data.records.forEach(r => {
+      const f = r.fields;
+      if (f.date && f.name) {
+        guestRecords.push({ rid: r.id, date: f.date, name: f.name, gender: f.gender || 'M', memo: f.memo || '' });
+      }
+    });
+    offset = data.offset;
+  } while (offset);
+}
+
+function renderGuestPage() {
+  renderGuestCalendar();
+  renderGuestDatePanel();
+  renderGuestHistory();
+}
+
+function selectGuestDate(dateStr) {
+  guestSelectedDate = dateStr;
+  document.getElementById('guest-date').value = dateStr;
+  const parts = dateStr.split('-');
+  guestMonth = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1);
+  renderGuestPage();
+}
+
+function renderGuestCalendar() {
+  const container = document.getElementById('guest-calendar');
+  const year = guestMonth.getFullYear(), month = guestMonth.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = new Date();
+  const guestDates = new Set(guestRecords.map(g => g.date));
+
+  let html = `<div class="calendar-header">
+    <button class="btn btn-sm btn-outline" onclick="guestMonth.setMonth(guestMonth.getMonth()-1);renderGuestCalendar()">◀</button>
+    <strong>${year}년 ${month + 1}월</strong>
+    <button class="btn btn-sm btn-outline" onclick="guestMonth.setMonth(guestMonth.getMonth()+1);renderGuestCalendar()">▶</button></div>`;
+  html += '<div class="calendar-grid">';
+  ['일','월','화','수','목','금','토'].forEach(d => { html += `<div class="day-header">${d}</div>`; });
+  for (let i = 0; i < firstDay; i++) html += '<div class="day-cell other-month"></div>';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === d;
+    const hasGuest = guestDates.has(dateStr);
+    const isSelected = guestSelectedDate === dateStr;
+    html += `<div class="day-cell ${isToday?'today':''} ${hasGuest?'has-game':''} ${isSelected?'selected':''}" onclick="selectGuestDate('${dateStr}')">${d}</div>`;
+  }
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function renderGuestDatePanel() {
+  const container = document.getElementById('guest-date-panel');
+  if (!guestSelectedDate) { container.innerHTML = '<p style="color:#999;font-size:0.85em;">날짜를 선택하세요.</p>'; return; }
+
+  const dateGuests = guestRecords.filter(g => g.date === guestSelectedDate);
+  const females = dateGuests.filter(g => g.gender === 'F');
+  const males = dateGuests.filter(g => g.gender === 'M');
+
+  let html = `<div class="guest-date-section"><h4>${guestSelectedDate} 게스트</h4>`;
+  html += '<div style="display:flex;gap:20px;margin-bottom:12px;">';
+
+  // Female
+  html += '<div style="flex:1;"><div style="font-size:0.8em;color:#c2185b;margin-bottom:4px;">여자 <button class="btn-add" style="width:20px;height:20px;font-size:0.8em;" onclick="openAddGuestModal(\'F\')">+</button></div><div class="cards-area">';
+  females.forEach(g => {
+    html += `<div class="guest-card female"><span>${escapeHtml(g.name)}</span>`;
+    if (g.memo) html += `<span class="guest-memo" title="${escapeHtml(g.memo)}">${escapeHtml(g.memo)}</span>`;
+    html += `<span class="card-menu" onclick="toggleGuestMenu(event,'${g.rid}')">⋯</span></div>`;
+  });
+  html += '</div></div>';
+
+  // Male
+  html += '<div style="flex:1;"><div style="font-size:0.8em;color:#1565c0;margin-bottom:4px;">남자 <button class="btn-add" style="width:20px;height:20px;font-size:0.8em;" onclick="openAddGuestModal(\'M\')">+</button></div><div class="cards-area">';
+  males.forEach(g => {
+    html += `<div class="guest-card male"><span>${escapeHtml(g.name)}</span>`;
+    if (g.memo) html += `<span class="guest-memo" title="${escapeHtml(g.memo)}">${escapeHtml(g.memo)}</span>`;
+    html += `<span class="card-menu" onclick="toggleGuestMenu(event,'${g.rid}')">⋯</span></div>`;
+  });
+  html += '</div></div></div></div>';
+  container.innerHTML = html;
+}
+
+function toggleGuestMenu(e, rid) {
+  e.stopPropagation();
+  document.querySelectorAll('.dropdown').forEach(d => d.remove());
+  const dd = document.createElement('div');
+  dd.className = 'dropdown';
+  dd.innerHTML = `
+    <div class="dropdown-item" onclick="editGuestMemo('${rid}')">메모 수정</div>
+    <div class="dropdown-item danger" onclick="deleteGuest('${rid}')">삭제</div>`;
+  e.target.closest('.guest-card').appendChild(dd);
+  setTimeout(() => document.addEventListener('click', function handler() { dd.remove(); document.removeEventListener('click', handler); }), 0);
+}
+
+function openAddGuestModal(gender) {
+  showModal(`<h3>게스트 등록 (${gender === 'F' ? '여자' : '남자'}) - ${guestSelectedDate}</h3>
+    <div class="form-group"><label>이름</label><input id="ag-name" placeholder="게스트 이름"></div>
+    <div class="form-group"><label>메모</label><input id="ag-memo" placeholder="메모 (선택)"></div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">취소</button>
+    <button class="btn btn-primary" onclick="addGuestRecord('${gender}')">등록</button></div>`);
+  setTimeout(() => {
+    const el = document.getElementById('ag-name');
+    el.focus();
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addGuestRecord(gender); } });
+  }, 100);
+}
+
+async function addGuestRecord(gender) {
+  if (_saving) return;
+  const name = document.getElementById('ag-name').value.trim();
+  const memo = document.getElementById('ag-memo').value.trim();
+  if (!name) return;
+  _saving = true;
+  closeModal();
+
+  const fields = { date: guestSelectedDate, name, gender, memo };
+  const data = await atFetch('Guests', { method: 'POST', body: JSON.stringify({ records: [{ fields }] }) });
+  if (data && data.records) {
+    guestRecords.push({ rid: data.records[0].id, ...fields });
+  }
+  renderGuestPage();
+  showToast('게스트가 등록되었습니다.');
+  _saving = false;
+}
+
+function editGuestMemo(rid) {
+  const g = guestRecords.find(x => x.rid === rid);
+  if (!g) return;
+  showModal(`<h3>메모 수정 - ${escapeHtml(g.name)}</h3>
+    <div class="form-group"><label>메모</label><input id="eg-memo" value="${escapeHtml(g.memo)}"></div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">취소</button>
+    <button class="btn btn-primary" onclick="saveGuestMemo('${rid}')">저장</button></div>`);
+  setTimeout(() => {
+    const el = document.getElementById('eg-memo');
+    el.focus();
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveGuestMemo(rid); } });
+  }, 100);
+}
+
+async function saveGuestMemo(rid) {
+  const memo = document.getElementById('eg-memo').value.trim();
+  const g = guestRecords.find(x => x.rid === rid);
+  if (!g) return;
+  g.memo = memo;
+  closeModal();
+  await atFetch('Guests', { method: 'PATCH', body: JSON.stringify({ records: [{ id: rid, fields: { memo } }] }) });
+  renderGuestPage();
+  showToast('메모가 수정되었습니다.');
+}
+
+async function deleteGuest(rid) {
+  if (!confirm('삭제하시겠습니까?')) return;
+  await atFetch(`Guests/${rid}`, { method: 'DELETE' });
+  guestRecords = guestRecords.filter(x => x.rid !== rid);
+  renderGuestPage();
+  showToast('게스트가 삭제되었습니다.');
+}
+
+function renderGuestHistory() {
+  const container = document.getElementById('guest-history-list');
+  // Group by name, count occurrences
+  const countMap = {};
+  const datesMap = {};
+  const genderMap = {};
+  guestRecords.forEach(g => {
+    countMap[g.name] = (countMap[g.name] || 0) + 1;
+    if (!datesMap[g.name]) datesMap[g.name] = [];
+    datesMap[g.name].push(g.date);
+    genderMap[g.name] = g.gender;
+  });
+
+  const sorted = Object.keys(countMap).sort((a, b) => countMap[b] - countMap[a]);
+
+  if (sorted.length === 0) {
+    container.innerHTML = '<p style="color:#999;font-size:0.85em;padding:12px;">등록된 게스트가 없습니다.</p>';
+    return;
+  }
+
+  let html = '';
+  sorted.forEach(name => {
+    const isExpanded = expandedGuestName === name;
+    const genderLabel = genderMap[name] === 'F' ? '여' : '남';
+    html += `<div class="guest-history-item" onclick="toggleGuestHistory('${escapeHtml(name)}')">
+      <div><span class="gh-name">${escapeHtml(name)}</span><span class="gh-gender">(${genderLabel})</span></div>
+      <span class="gh-count">${countMap[name]}회</span>
+    </div>`;
+    if (isExpanded) {
+      const dates = datesMap[name].sort().reverse();
+      html += '<div class="guest-history-detail">';
+      dates.forEach(d => { html += `<div>${d}</div>`; });
+      html += '</div>';
+    }
+  });
+  container.innerHTML = html;
+}
+
+function toggleGuestHistory(name) {
+  expandedGuestName = expandedGuestName === name ? null : name;
+  renderGuestHistory();
+}
+
+// Get guests for a specific date (used in draw page)
+function getGuestsForDate(dateStr) {
+  return guestRecords.filter(g => g.date === dateStr);
 }
 
 // ===================== BOARD =====================
