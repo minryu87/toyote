@@ -231,6 +231,34 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: fl
 .print-stats .name-cell { text-align: left; }
 .print-footer { margin-top: 24px; font-size: 0.82em; color: #e67e22; line-height: 1.6; }
 
+/* Videos */
+.video-layout { display: flex; gap: 20px; }
+.video-left { width: 280px; flex-shrink: 0; overflow-y: auto; max-height: calc(100vh - 60px); }
+.video-right { flex: 1; min-width: 0; }
+.video-date-card { display: flex; gap: 10px; padding: 10px; margin-bottom: 8px; background: #fff; border-radius: 10px; border: 1px solid #e0e0e0; cursor: pointer; transition: all 0.2s; align-items: center; }
+.video-date-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+.video-date-card.active { border-color: #2ecc71; background: #e8f8f0; }
+.video-date-card img { width: 100px; height: 56px; border-radius: 6px; object-fit: cover; background: #eee; }
+.video-date-card .vd-date { font-weight: 600; font-size: 0.92em; }
+.video-date-card .vd-count { font-size: 0.78em; color: #999; }
+.video-player { background: #fff; border-radius: 12px; padding: 16px; border: 1px solid #e0e0e0; }
+.video-player h3 { margin-bottom: 12px; font-size: 1em; }
+.video-player iframe { width: 100%; aspect-ratio: 16/9; border: none; border-radius: 8px; }
+.video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 14px; }
+.video-thumb { cursor: pointer; border-radius: 8px; overflow: hidden; border: 2px solid transparent; transition: all 0.2s; }
+.video-thumb:hover { border-color: #2ecc71; }
+.video-thumb.active { border-color: #2ecc71; box-shadow: 0 0 0 2px rgba(46,204,113,0.3); }
+.video-thumb img { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; }
+.video-thumb .vt-title { padding: 6px 8px; font-size: 0.8em; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+@media (max-width: 768px) {
+  .video-layout { flex-direction: column; }
+  .video-left { width: 100%; max-height: none; display: flex; overflow-x: auto; gap: 8px; padding-bottom: 8px; }
+  .video-left .video-date-card { flex-shrink: 0; width: 160px; flex-direction: column; }
+  .video-left .video-date-card img { width: 100%; height: auto; }
+  .video-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+}
+
 /* Guest management */
 .guest-layout { display: flex; gap: 24px; }
 .guest-left { width: 480px; flex-shrink: 0; }
@@ -379,6 +407,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: fl
     <li data-page="members">멤버 관리</li>
     <li data-page="guests">게스트 관리</li>
     <li data-page="draw">대진표 작성</li>
+    <li data-page="videos">경기 영상</li>
     <li data-page="board">게시판</li>
     <li data-page="guide">이용 가이드</li>
   </ul>
@@ -539,6 +568,17 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: fl
         <div class="saved-draw-view" id="saved-draw-view">
           <p style="color:#999;">캘린더에서 날짜를 선택하세요.</p>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 경기 영상 ========== -->
+  <div id="page-videos" class="page">
+    <div class="page-title">경기 영상</div>
+    <div class="video-layout">
+      <div class="video-left" id="video-date-list"></div>
+      <div class="video-right" id="video-player-area">
+        <p style="color:#999;">날짜를 선택하세요.</p>
       </div>
     </div>
   </div>
@@ -920,6 +960,7 @@ document.querySelectorAll('.sidebar-menu li').forEach(li => {
     if (li.dataset.page === 'draw') renderParticipantSection();
     if (li.dataset.page === 'history') renderHistory();
     if (li.dataset.page === 'guests') renderGuestPage();
+    if (li.dataset.page === 'videos') renderVideosPage();
     if (li.dataset.page === 'board') renderBoard();
   });
 });
@@ -2605,6 +2646,160 @@ async function savePostCommentsToAirtable(post) {
     method: 'PATCH',
     body: JSON.stringify({ records: [{ id: recId, fields: { comments: JSON.stringify(post.comments) } }] })
   });
+}
+
+// ===================== VIDEOS =====================
+const YT_API_KEY = 'AIzaSyCEj8sX9NW0TNneTO_zOCje7ua3Jix050k';
+const VIDEO_PLAYLISTS = [
+  { date: '2026-03-28', id: 'PLDo84LcDeRf-2nTZSSmaIRW3ugc0xpv1N' },
+  { date: '2026-03-14', id: 'PLDo84LcDeRf-5oEKG-DNPXCyKdaGh86DD' },
+  { date: '2026-02-28', id: 'PLDo84LcDeRf_LCbvhE8loGDZRF2YVHJKC' },
+  { date: '2026-02-21', id: 'PLDo84LcDeRf9Dqhkt2keYK_BuAvcoXOfE' },
+  { date: '2026-02-07', id: 'PLDo84LcDeRf9ZGZbx6H24oiYyqKF4E0N5' },
+  { date: '2026-01-31', id: 'PLDo84LcDeRf_AGkPM6TeBQRIKQoUlCz9K' },
+  { date: '2026-01-24', id: 'PLDo84LcDeRf83FEkWY0DRxDXpcRX0Jytu' },
+  { date: '2026-01-17', id: 'PLDo84LcDeRf9uzSDOCOt3CIEegcVy9ryY' },
+  { date: '2026-01-10', id: 'PLDo84LcDeRf9WXTooeWTfDSALjOrAcUqj' },
+  { date: '2026-01-03', id: 'PLDo84LcDeRf_Ie7K9Pst0vVxUChqkjhA9' },
+  { date: '2025-12-27', id: 'PLDo84LcDeRf9FLKi3olPusjMH-18Ri219' },
+  { date: '2025-12-06', id: 'PLDo84LcDeRf8-G2jHgQe6dRwgDfblrYBX' },
+];
+
+let selectedPlaylist = null;
+let playlistCache = {}; // playlistId -> [{videoId, title, thumbnail}]
+let currentVideoId = null;
+
+// Fetch first video thumbnail for each playlist (for date card)
+let playlistThumbs = {}; // playlistId -> thumbnailUrl
+
+async function fetchPlaylistThumb(plId) {
+  if (playlistThumbs[plId]) return playlistThumbs[plId];
+  try {
+    const res = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=1&playlistId=${plId}&key=${YT_API_KEY}`);
+    const data = await res.json();
+    if (data.items && data.items.length > 0) {
+      const thumb = data.items[0].snippet.thumbnails.medium?.url || data.items[0].snippet.thumbnails.default?.url;
+      playlistThumbs[plId] = thumb;
+      return thumb;
+    }
+  } catch (e) { console.error(e); }
+  return '';
+}
+
+async function fetchPlaylistItems(plId) {
+  if (playlistCache[plId]) return playlistCache[plId];
+  const items = [];
+  let pageToken = '';
+  do {
+    const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${plId}&key=${YT_API_KEY}${pageToken ? '&pageToken=' + pageToken : ''}`;
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.items) {
+        data.items.forEach(item => {
+          const s = item.snippet;
+          const vid = s.resourceId?.videoId;
+          if (vid) {
+            items.push({
+              videoId: vid,
+              title: s.title || '',
+              thumbnail: s.thumbnails?.medium?.url || s.thumbnails?.default?.url || ''
+            });
+          }
+        });
+      }
+      pageToken = data.nextPageToken || '';
+    } catch (e) { console.error(e); pageToken = ''; }
+  } while (pageToken);
+  playlistCache[plId] = items;
+  return items;
+}
+
+async function renderVideoDateList() {
+  const container = document.getElementById('video-date-list');
+  let html = '';
+  // Render cards with placeholders, then load thumbs
+  VIDEO_PLAYLISTS.forEach((pl, i) => {
+    const isActive = selectedPlaylist === pl.id;
+    const dateLabel = pl.date.replace(/-/g, '.');
+    html += `<div class="video-date-card ${isActive ? 'active' : ''}" onclick="selectPlaylist('${pl.id}')" id="vcard-${i}">
+      <img id="vthumb-${i}" src="" alt="" style="background:#ddd;">
+      <div><div class="vd-date">${dateLabel}</div><div class="vd-count" id="vcount-${i}"></div></div>
+    </div>`;
+  });
+  container.innerHTML = html;
+
+  // Load thumbnails async
+  VIDEO_PLAYLISTS.forEach(async (pl, i) => {
+    const thumb = await fetchPlaylistThumb(pl.id);
+    const img = document.getElementById(`vthumb-${i}`);
+    if (img && thumb) img.src = thumb;
+  });
+}
+
+async function selectPlaylist(plId) {
+  selectedPlaylist = plId;
+  // Highlight active card
+  document.querySelectorAll('.video-date-card').forEach(c => c.classList.remove('active'));
+  const pl = VIDEO_PLAYLISTS.find(p => p.id === plId);
+  const idx = VIDEO_PLAYLISTS.indexOf(pl);
+  const card = document.getElementById(`vcard-${idx}`);
+  if (card) card.classList.add('active');
+
+  const playerArea = document.getElementById('video-player-area');
+  playerArea.innerHTML = '<p style="color:#999;">영상 목록 로딩 중...</p>';
+
+  const items = await fetchPlaylistItems(plId);
+  if (items.length === 0) {
+    playerArea.innerHTML = '<p style="color:#999;">영상이 없습니다.</p>';
+    return;
+  }
+
+  // Update count
+  const countEl = document.getElementById(`vcount-${idx}`);
+  if (countEl) countEl.textContent = `${items.length}개 영상`;
+
+  currentVideoId = items[0].videoId;
+  renderVideoPlayer(plId, items);
+}
+
+function renderVideoPlayer(plId, items) {
+  const pl = VIDEO_PLAYLISTS.find(p => p.id === plId);
+  const dateLabel = pl ? pl.date.replace(/-/g, '.') : '';
+
+  let html = `<div class="video-player">
+    <h3>${dateLabel} 경기 영상</h3>
+    <iframe id="yt-player" src="https://www.youtube.com/embed/${currentVideoId}?rel=0" allowfullscreen></iframe>
+    <div class="video-grid">`;
+
+  items.forEach(v => {
+    const isActive = v.videoId === currentVideoId;
+    html += `<div class="video-thumb ${isActive ? 'active' : ''}" onclick="playVideo('${v.videoId}')">
+      <img src="${v.thumbnail}" alt="${escapeHtml(v.title)}">
+      <div class="vt-title">${escapeHtml(v.title)}</div>
+    </div>`;
+  });
+
+  html += '</div></div>';
+  document.getElementById('video-player-area').innerHTML = html;
+}
+
+function playVideo(videoId) {
+  currentVideoId = videoId;
+  const iframe = document.getElementById('yt-player');
+  if (iframe) {
+    iframe.src = `https://www.youtube.com/embed/${videoId}?rel=0&autoplay=1`;
+  }
+  // Update active thumb
+  document.querySelectorAll('.video-thumb').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.video-thumb').forEach(t => {
+    if (t.getAttribute('onclick').includes(videoId)) t.classList.add('active');
+  });
+}
+
+function renderVideosPage() {
+  renderVideoDateList();
+  if (selectedPlaylist) selectPlaylist(selectedPlaylist);
 }
 
 // ===================== BALL RAIN =====================
