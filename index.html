@@ -810,7 +810,7 @@ async function loadAllData() {
   startBallRain();
   const minDelay = new Promise(r => setTimeout(r, 3000));
   try {
-    await Promise.all([loadMembers(), loadDraws(), loadConfig(), loadPosts(), loadGuests()]);
+    await Promise.all([loadMembers(), loadDraws(), loadConfig(), loadPosts(), loadGuests(), loadPlaylists()]);
     dataLoaded = true;
     renderMembers();
     renderHistory();
@@ -874,6 +874,9 @@ async function loadConfig() {
     if (r.fields.key === 'nextMemberId') {
       nextMemberId = parseInt(r.fields.value) || 1;
       configRecordId = r.id;
+    }
+    if (r.fields.key === 'ytApiKey') {
+      YT_API_KEY = r.fields.value || '';
     }
   });
 }
@@ -2649,25 +2652,72 @@ async function savePostCommentsToAirtable(post) {
 }
 
 // ===================== VIDEOS =====================
-const YT_API_KEY = 'AIzaSyCEj8sX9NW0TNneTO_zOCje7ua3Jix050k';
-const VIDEO_PLAYLISTS = [
-  { date: '2026-03-28', id: 'PLDo84LcDeRf-2nTZSSmaIRW3ugc0xpv1N' },
-  { date: '2026-03-14', id: 'PLDo84LcDeRf-5oEKG-DNPXCyKdaGh86DD' },
-  { date: '2026-02-28', id: 'PLDo84LcDeRf_LCbvhE8loGDZRF2YVHJKC' },
-  { date: '2026-02-21', id: 'PLDo84LcDeRf9Dqhkt2keYK_BuAvcoXOfE' },
-  { date: '2026-02-07', id: 'PLDo84LcDeRf9ZGZbx6H24oiYyqKF4E0N5' },
-  { date: '2026-01-31', id: 'PLDo84LcDeRf_AGkPM6TeBQRIKQoUlCz9K' },
-  { date: '2026-01-24', id: 'PLDo84LcDeRf83FEkWY0DRxDXpcRX0Jytu' },
-  { date: '2026-01-17', id: 'PLDo84LcDeRf9uzSDOCOt3CIEegcVy9ryY' },
-  { date: '2026-01-10', id: 'PLDo84LcDeRf9WXTooeWTfDSALjOrAcUqj' },
-  { date: '2026-01-03', id: 'PLDo84LcDeRf_Ie7K9Pst0vVxUChqkjhA9' },
-  { date: '2025-12-27', id: 'PLDo84LcDeRf9FLKi3olPusjMH-18Ri219' },
-  { date: '2025-12-06', id: 'PLDo84LcDeRf8-G2jHgQe6dRwgDfblrYBX' },
-];
+let YT_API_KEY = '';
+let VIDEO_PLAYLISTS = []; // loaded from Airtable
+let playlistRecordIds = {}; // playlistId -> airtable record id
 
 let selectedPlaylist = null;
-let playlistCache = {}; // playlistId -> [{videoId, title, thumbnail}]
+let playlistCache = {};
 let currentVideoId = null;
+
+async function loadPlaylists() {
+  VIDEO_PLAYLISTS = [];
+  playlistRecordIds = {};
+  let offset = null;
+  do {
+    const url = offset ? `Playlists?offset=${offset}` : 'Playlists';
+    const data = await atFetch(url);
+    if (!data) break;
+    data.records.forEach(r => {
+      const f = r.fields;
+      if (f.date && f.playlistId) {
+        VIDEO_PLAYLISTS.push({ date: f.date, id: f.playlistId });
+        playlistRecordIds[f.playlistId] = r.id;
+      }
+    });
+    offset = data.offset;
+  } while (offset);
+  VIDEO_PLAYLISTS.sort((a, b) => b.date.localeCompare(a.date));
+}
+
+function extractPlaylistId(url) {
+  // Handle various YouTube playlist URL formats
+  const match = url.match(/[?&]list=([a-zA-Z0-9_-]+)/);
+  return match ? match[1] : url.trim();
+}
+
+function openAddPlaylistModal() {
+  showModal(`<h3>재생목록 추가</h3>
+    <div class="form-group"><label>날짜</label><input type="date" id="pl-date"></div>
+    <div class="form-group"><label>YouTube 재생목록 URL</label><input id="pl-url" placeholder="https://youtube.com/playlist?list=..."></div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">취소</button>
+    <button class="btn btn-primary" onclick="addPlaylist()">추가</button></div>`);
+  setTimeout(() => document.getElementById('pl-date').focus(), 100);
+}
+
+async function addPlaylist() {
+  const date = document.getElementById('pl-date').value;
+  const url = document.getElementById('pl-url').value.trim();
+  if (!date || !url) { showToast('날짜와 URL을 입력해주세요.'); return; }
+  const plId = extractPlaylistId(url);
+  if (!plId) { showToast('유효한 재생목록 URL이 아닙니다.'); return; }
+
+  // Check duplicate
+  if (VIDEO_PLAYLISTS.some(p => p.id === plId)) { showToast('이미 등록된 재생목록입니다.'); closeModal(); return; }
+
+  closeModal();
+  showToast('추가 중...');
+
+  const fields = { date, playlistId: plId };
+  const data = await atFetch('Playlists', { method: 'POST', body: JSON.stringify({ records: [{ fields }] }) });
+  if (data && data.records) {
+    playlistRecordIds[plId] = data.records[0].id;
+    VIDEO_PLAYLISTS.push({ date, id: plId });
+    VIDEO_PLAYLISTS.sort((a, b) => b.date.localeCompare(a.date));
+    renderVideoDateList();
+    showToast('재생목록이 추가되었습니다.');
+  }
+}
 
 // Fetch first video thumbnail for each playlist (for date card)
 let playlistThumbs = {}; // playlistId -> thumbnailUrl
@@ -2717,8 +2767,7 @@ async function fetchPlaylistItems(plId) {
 
 async function renderVideoDateList() {
   const container = document.getElementById('video-date-list');
-  let html = '';
-  // Render cards with placeholders, then load thumbs
+  let html = `<div class="video-date-card" onclick="openAddPlaylistModal()" style="justify-content:center;border-style:dashed;color:#2ecc71;font-weight:600;font-size:0.9em;">+ 재생목록 추가</div>`;
   VIDEO_PLAYLISTS.forEach((pl, i) => {
     const isActive = selectedPlaylist === pl.id;
     const dateLabel = pl.date.replace(/-/g, '.');
