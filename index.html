@@ -2854,6 +2854,9 @@ function playVideo(videoId) {
 
 function renderVideosPage() {
   renderVideoDateList();
+  if (!selectedPlaylist && VIDEO_PLAYLISTS.length > 0) {
+    selectedPlaylist = VIDEO_PLAYLISTS[0].id;
+  }
   if (selectedPlaylist) selectPlaylist(selectedPlaylist);
 }
 
