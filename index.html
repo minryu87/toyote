@@ -194,7 +194,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: fl
 .section-title .badge { background: #2ecc71; color: #fff; font-size: 0.7em; padding: 2px 8px; border-radius: 10px; }
 
 /* Page title */
-.page-title { font-size: 1.1em; font-weight: 700; margin-bottom: 10px; color: #2c3e50; }
+.page-title { display: none; }
 
 /* Confirm/finalize button */
 .center-btn { text-align: center; margin-top: 12px; }
@@ -359,7 +359,10 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: fl
   #page-guide > div { max-width: 100% !important; }
 
   /* Hide desktop-only pages on mobile */
-  [data-page="members"], [data-page="draw"] { font-size: 0.72em; color: #7f8c8d; }
+  [data-page="members"], [data-page="draw"], [data-page="guide"] { display: none !important; }
+
+  .page-title { display: none !important; }
+  .draw-actions-desktop { display: none !important; }
 
   /* Modal mobile */
   .modal { min-width: auto; width: 90vw; padding: 16px; }
@@ -407,11 +410,6 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: fl
     <div class="page-title">게스트 관리</div>
     <div class="guest-layout">
       <div class="guest-left">
-        <!-- Calendar -->
-        <div class="date-picker-section" style="margin-bottom:12px;">
-          <label style="font-weight:600;">날짜 선택:</label>
-          <input type="date" id="guest-date" onchange="selectGuestDate(this.value)">
-        </div>
         <div class="calendar" id="guest-calendar"></div>
         <!-- Guest registration for selected date -->
         <div id="guest-date-panel" style="margin-top:12px;"></div>
@@ -2036,7 +2034,7 @@ function renderSavedDrawView(dateStr) {
   }
 
   // Buttons
-  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+  let html = `<div class="draw-actions-desktop" style="display:flex;justify-content:flex-end;margin-bottom:10px;">
     <button class="btn btn-sm btn-outline" onclick="loadDraw('${data.date}')">수정하기</button>
     <button class="btn btn-sm btn-danger" style="margin-left:6px;" onclick="deleteDraw('${data.date}')">삭제</button></div>`;
 
@@ -2187,14 +2185,22 @@ async function loadGuests() {
 }
 
 function renderGuestPage() {
+  if (!guestPageInitialized) {
+    guestPageInitialized = true;
+    const nextSat = getNextSaturday();
+    guestSelectedDate = nextSat;
+    const parts = nextSat.split('-');
+    guestMonth = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1);
+  }
   renderGuestCalendar();
   renderGuestDatePanel();
   renderGuestHistory();
 }
 
+let guestPageInitialized = false;
+
 function selectGuestDate(dateStr) {
   guestSelectedDate = dateStr;
-  document.getElementById('guest-date').value = dateStr;
   const parts = dateStr.split('-');
   guestMonth = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1);
   renderGuestPage();
@@ -2333,9 +2339,11 @@ async function deleteGuest(rid) {
   showToast('게스트가 삭제되었습니다.');
 }
 
+let guestHistoryPage = 0;
+const GUEST_PAGE_SIZE = 10;
+
 function renderGuestHistory() {
   const container = document.getElementById('guest-history-list');
-  // Group by name, count occurrences
   const countMap = {};
   const datesMap = {};
   const genderMap = {};
@@ -2353,8 +2361,14 @@ function renderGuestHistory() {
     return;
   }
 
+  const totalPages = Math.ceil(sorted.length / GUEST_PAGE_SIZE);
+  if (guestHistoryPage >= totalPages) guestHistoryPage = totalPages - 1;
+  if (guestHistoryPage < 0) guestHistoryPage = 0;
+  const start = guestHistoryPage * GUEST_PAGE_SIZE;
+  const pageItems = sorted.slice(start, start + GUEST_PAGE_SIZE);
+
   let html = '';
-  sorted.forEach(name => {
+  pageItems.forEach(name => {
     const isExpanded = expandedGuestName === name;
     const genderLabel = genderMap[name] === 'F' ? '여' : '남';
     html += `<div class="guest-history-item" onclick="toggleGuestHistory('${escapeHtml(name)}')">
@@ -2368,6 +2382,16 @@ function renderGuestHistory() {
       html += '</div>';
     }
   });
+
+  // Pagination
+  if (totalPages > 1) {
+    html += '<div style="display:flex;justify-content:center;gap:8px;padding:12px 0;font-size:0.85em;">';
+    html += `<button class="btn btn-sm btn-outline" onclick="guestHistoryPage--;renderGuestHistory()" ${guestHistoryPage===0?'disabled':''}>◀</button>`;
+    html += `<span style="line-height:28px;">${guestHistoryPage+1} / ${totalPages}</span>`;
+    html += `<button class="btn btn-sm btn-outline" onclick="guestHistoryPage++;renderGuestHistory()" ${guestHistoryPage>=totalPages-1?'disabled':''}>▶</button>`;
+    html += '</div>';
+  }
+
   container.innerHTML = html;
 }
 
