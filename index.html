@@ -232,6 +232,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: fl
 .print-footer { margin-top: 24px; font-size: 0.82em; color: #e67e22; line-height: 1.6; }
 
 /* Videos */
+.video-add-bar { display: none; margin-bottom: 10px; }
 .video-layout { display: flex; gap: 20px; }
 .video-left { width: 280px; flex-shrink: 0; overflow-y: auto; max-height: calc(100vh - 60px); }
 .video-right { flex: 1; min-width: 0; }
@@ -257,6 +258,8 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: fl
   .video-left .video-date-card { flex-shrink: 0; width: 160px; flex-direction: column; }
   .video-left .video-date-card img { width: 100%; height: auto; }
   .video-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .video-add-bar { display: block; }
+  .video-add-inline { display: none !important; }
 }
 
 /* Guest management */
@@ -575,6 +578,9 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: fl
   <!-- ========== 경기 영상 ========== -->
   <div id="page-videos" class="page">
     <div class="page-title">경기 영상</div>
+    <div class="video-add-bar">
+      <button class="btn btn-sm btn-primary" onclick="openAddPlaylistModal()">+ 재생목록 추가</button>
+    </div>
     <div class="video-layout">
       <div class="video-left" id="video-date-list"></div>
       <div class="video-right" id="video-player-area">
@@ -2767,7 +2773,7 @@ async function fetchPlaylistItems(plId) {
 
 async function renderVideoDateList() {
   const container = document.getElementById('video-date-list');
-  let html = `<div class="video-date-card" onclick="openAddPlaylistModal()" style="justify-content:center;border-style:dashed;color:#2ecc71;font-weight:600;font-size:0.9em;">+ 재생목록 추가</div>`;
+  let html = `<div class="video-date-card video-add-inline" onclick="openAddPlaylistModal()" style="justify-content:center;border-style:dashed;color:#2ecc71;font-weight:600;font-size:0.9em;">+ 재생목록 추가</div>`;
   VIDEO_PLAYLISTS.forEach((pl, i) => {
     const isActive = selectedPlaylist === pl.id;
     const dateLabel = pl.date.replace(/-/g, '.');
