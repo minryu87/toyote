@@ -265,8 +265,8 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: fl
 }
 
 /* Shared video feed */
-.shared-feed { max-width: 700px; }
-.shared-feed-row { display: flex; flex-wrap: wrap; gap: 12px; }
+.shared-feed { max-width: 660px; }
+.shared-feed-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
 .shared-feed-card { background: #fff; border-radius: 10px; border: 1px solid #e0e0e0; overflow: hidden; transition: all 0.2s; }
 .shared-feed-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
 .shared-feed-card .sfc-player { position: relative; cursor: pointer; overflow: hidden; }
@@ -278,15 +278,14 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: fl
 .shared-feed-card .sfc-title { font-size: 0.85em; font-weight: 600; margin-bottom: 3px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .shared-feed-card .sfc-meta { font-size: 0.75em; color: #999; }
 
-/* All cards: same thumbnail height */
-.shared-feed-card .sfc-player img { width: 100%; aspect-ratio: 16/9; }
-
-/* Landscape: flexible, fills row */
-.shared-feed-card.card-landscape { flex: 1 1 400px; }
+/* Landscape */
+.shared-feed-card.card-landscape { flex: 1 1 100%; }
+.shared-feed-card.card-landscape .sfc-player img { width: 100%; aspect-ratio: 16/9; object-fit: cover; }
 .shared-feed-card.card-landscape .sfc-player iframe { width: 100%; aspect-ratio: 16/9; }
 
-/* Shorts: narrow fixed width, same thumb height as landscape */
-.shared-feed-card.card-shorts { flex: 0 0 200px; }
+/* Shorts: 9:16 ratio, thumbnail cropped to vertical */
+.shared-feed-card.card-shorts { flex: 0 0 calc(33.3% - 8px); }
+.shared-feed-card.card-shorts .sfc-player img { width: 100%; aspect-ratio: 9/16; object-fit: cover; }
 .shared-feed-card.card-shorts .sfc-player iframe { width: 100%; aspect-ratio: 9/16; }
 
 @media (max-width: 768px) {
@@ -382,7 +381,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: fl
   .logo-full { display: none; }
   .logo-mini { display: inline-block; }
   .sidebar-menu { display: flex; flex-wrap: wrap; padding: 0; overflow-x: auto; }
-  .sidebar-menu li { padding: 10px 12px; font-size: 0.78em; border-left: none; border-bottom: 3px solid transparent; white-space: nowrap; }
+  .sidebar-menu li { padding: 8px 8px; font-size: 0.72em; border-left: none; border-bottom: 3px solid transparent; white-space: nowrap; }
   .sidebar-menu li.active { border-left: none; border-bottom-color: #2ecc71; }
   .sidebar > div:last-child { display: none; }
   .main { padding: 10px; height: auto; overflow-y: auto; }
