@@ -11,6 +11,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: fl
 /* Sidebar */
 .sidebar { width: 160px; background: #2c3e50; color: #ecf0f1; display: flex; flex-direction: column; flex-shrink: 0; }
 .sidebar-logo { padding: 16px 10px; text-align: center; font-size: 1.2em; font-weight: bold; border-bottom: 1px solid #34495e; letter-spacing: 2px; color: #2ecc71; }
+.logo-mini { display: none; width: 28px; height: 28px; border: 2px solid #2ecc71; border-radius: 50%; line-height: 24px; text-align: center; font-size: 0.9em; margin: 0 auto; }
 .sidebar-menu { list-style: none; padding: 10px 0; }
 .sidebar-menu li { padding: 12px 16px; cursor: pointer; transition: background 0.2s; font-size: 0.88em; border-left: 3px solid transparent; }
 .sidebar-menu li:hover { background: #34495e; }
@@ -260,6 +261,28 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: fl
   .video-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
   .video-add-bar { display: block; }
   .video-add-inline { display: none !important; }
+  .shared-video-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+}
+
+/* Shared video feed */
+.shared-feed { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.shared-feed-card { background: #fff; border-radius: 12px; border: 1px solid #e0e0e0; overflow: hidden; transition: all 0.2s; }
+.shared-feed-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+.shared-feed-card .sfc-player { position: relative; cursor: pointer; }
+.shared-feed-card .sfc-player img { width: 100%; display: block; }
+.shared-feed-card .sfc-player img.thumb-landscape { aspect-ratio: 16/9; object-fit: cover; }
+.shared-feed-card .sfc-player img.thumb-shorts { aspect-ratio: 9/16; object-fit: cover; max-height: 400px; }
+.shared-feed-card .sfc-player .play-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 48px; height: 48px; background: rgba(0,0,0,0.6); border-radius: 50%; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.shared-feed-card .sfc-player .play-overlay::after { content: ''; border-left: 16px solid #fff; border-top: 10px solid transparent; border-bottom: 10px solid transparent; margin-left: 4px; }
+.shared-feed-card .sfc-player iframe { width: 100%; border: none; display: block; }
+.shared-feed-card .sfc-player iframe.iframe-landscape { aspect-ratio: 16/9; }
+.shared-feed-card .sfc-player iframe.iframe-shorts { aspect-ratio: 9/16; max-height: 400px; }
+.shared-feed-card .sfc-info { padding: 10px 14px; }
+.shared-feed-card .sfc-title { font-size: 0.9em; font-weight: 600; margin-bottom: 4px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.shared-feed-card .sfc-meta { font-size: 0.78em; color: #999; }
+
+@media (max-width: 768px) {
+  .shared-feed { grid-template-columns: 1fr 1fr; gap: 10px; }
 }
 
 /* Guest management */
@@ -282,21 +305,18 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: fl
 .guest-history-detail { padding: 8px 12px 12px 24px; font-size: 0.82em; color: #666; border-bottom: 1px solid #eee; background: #fafafa; }
 
 /* Board */
-.board-layout { display: flex; gap: 20px; }
-.board-left { flex: 0 0 60%; min-width: 0; }
-.board-right { width: 340px; flex-shrink: 0; background: #fff; border-radius: 12px; padding: 20px; border: 1px solid #e0e0e0; }
-.board-right .form-group { margin-bottom: 12px; }
-.board-right .form-group label { display: block; margin-bottom: 4px; font-size: 0.85em; color: #666; }
-.board-right .form-group input { width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95em; }
+.board-full { width: 100%; }
 .board-table { width: 100%; border-collapse: collapse; font-size: 0.88em; background: #fff; border-radius: 12px; overflow: hidden; border: 1px solid #e0e0e0; }
 .board-table th { background: #f5f5f5; padding: 10px 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #ddd; }
 .board-table td { padding: 10px 12px; border-bottom: 1px solid #eee; cursor: pointer; }
 .board-table tbody tr:hover { background: #f9f9f9; }
 .board-table tbody tr.selected { background: #e8f8f0; }
-.board-table .col-no { width: 50px; text-align: center; }
+.board-table .col-no { width: 40px; text-align: center; }
+.board-table .col-thumb { width: 60px; }
+.board-table .col-thumb img { width: 56px; height: 32px; border-radius: 4px; object-fit: cover; display: block; }
 .board-table .col-author { width: 80px; }
 .board-table .col-date { width: 90px; }
-.board-table .col-title { width: 60%; }
+.board-table .col-title { }
 
 /* Post detail (expanded row) */
 .post-detail { background: #fff; padding: 16px 20px; border-bottom: 2px solid #2ecc71; }
@@ -348,7 +368,9 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: fl
 @media (max-width: 768px) {
   body { flex-direction: column; height: auto; }
   .sidebar { width: 100%; flex-direction: row; align-items: center; padding: 0; }
-  .sidebar-logo { padding: 10px 14px; font-size: 1em; border-bottom: none; border-right: 1px solid #34495e; }
+  .sidebar-logo { padding: 6px 10px; font-size: 1em; border-bottom: none; border-right: 1px solid #34495e; }
+  .logo-full { display: none; }
+  .logo-mini { display: inline-block; }
   .sidebar-menu { display: flex; flex-wrap: wrap; padding: 0; overflow-x: auto; }
   .sidebar-menu li { padding: 10px 12px; font-size: 0.78em; border-left: none; border-bottom: 3px solid transparent; white-space: nowrap; }
   .sidebar-menu li.active { border-left: none; border-bottom-color: #2ecc71; }
@@ -376,12 +398,12 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: fl
   .guest-right { width: 100%; }
 
   /* Board mobile */
-  .board-layout { flex-direction: column; }
-  .board-left { flex: none !important; width: 100%; }
-  .board-right { width: 100%; }
   .board-table { font-size: 0.8em; }
-  .board-table .col-author { width: 60px; }
-  .board-table .col-date { width: 70px; }
+  .board-table .col-author { width: 50px; }
+  .board-table .col-date { width: 65px; }
+  .board-table .col-no { width: 30px; }
+  .board-table .col-thumb { width: 48px; }
+  .board-table .col-thumb img { width: 44px; height: 26px; }
   .post-detail .post-body { font-size: 0.85em; }
   .comment-form { flex-wrap: wrap; }
   .comment-form textarea { min-width: 0; }
@@ -404,13 +426,14 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: fl
 
 <!-- Sidebar -->
 <nav class="sidebar">
-  <div class="sidebar-logo" onclick="goToDashboard()" style="cursor:pointer;">TOYOTE</div>
+  <div class="sidebar-logo" onclick="goToDashboard()" style="cursor:pointer;"><span class="logo-full">TOYOTE</span><span class="logo-mini">T</span></div>
   <ul class="sidebar-menu">
     <li class="active" data-page="history">대시보드</li>
     <li data-page="members">멤버 관리</li>
     <li data-page="guests">게스트 관리</li>
     <li data-page="draw">대진표 작성</li>
     <li data-page="videos">경기 영상</li>
+    <li data-page="shared">영상 공유</li>
     <li data-page="board">게시판</li>
     <li data-page="guide">이용 가이드</li>
   </ul>
@@ -589,27 +612,29 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: fl
     </div>
   </div>
 
+  <!-- ========== 영상 공유 ========== -->
+  <div id="page-shared" class="page">
+    <div class="page-title">영상 공유</div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+      <button class="btn btn-sm btn-primary" onclick="openShareVideoModal()">+ 영상 등록</button>
+    </div>
+    <div class="shared-feed" id="shared-feed"></div>
+    <div id="shared-load-more" style="text-align:center;padding:16px;display:none;">
+      <button class="btn btn-outline btn-sm" onclick="loadMoreShared()">더 보기</button>
+    </div>
+  </div>
+
   <!-- ========== 게시판 ========== -->
   <div id="page-board" class="page">
     <div class="page-title">게시판</div>
-    <div class="board-layout">
-      <!-- 좌측: 목록 -->
-      <div class="board-left">
-        <table class="board-table">
-          <thead><tr><th class="col-no">번호</th><th class="col-title">제목</th><th class="col-author">작성자</th><th class="col-date">작성일</th></tr></thead>
-          <tbody id="board-list"></tbody>
-        </table>
-      </div>
-      <!-- 우측: 글 작성 폼 -->
-      <div class="board-right" id="board-right">
-        <div id="board-form">
-          <h3 style="margin-bottom:14px;">글 작성</h3>
-          <div class="form-group"><label>제목</label><input id="post-title" placeholder="제목을 입력하세요"></div>
-          <div class="form-group"><label>작성자</label><input id="post-author" placeholder="이름"></div>
-          <div class="form-group"><label>본문</label><textarea id="post-content" rows="8" placeholder="내용을 입력하세요" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:0.95em;resize:vertical;font-family:inherit;"></textarea></div>
-          <button class="btn btn-primary" onclick="savePost()">저장</button>
-        </div>
-      </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+      <button class="btn btn-primary btn-sm" onclick="openPostModal()">글 작성</button>
+    </div>
+    <div class="board-full">
+      <table class="board-table">
+        <thead><tr><th class="col-no">번호</th><th class="col-thumb"></th><th class="col-title">제목</th><th class="col-author">작성자</th><th class="col-date">작성일</th></tr></thead>
+        <tbody id="board-list"></tbody>
+      </table>
     </div>
   </div>
 
@@ -816,7 +841,7 @@ async function loadAllData() {
   startBallRain();
   const minDelay = new Promise(r => setTimeout(r, 3000));
   try {
-    await Promise.all([loadMembers(), loadDraws(), loadConfig(), loadPosts(), loadGuests(), loadPlaylists(), loadVisits()]);
+    await Promise.all([loadMembers(), loadDraws(), loadConfig(), loadPosts(), loadGuests(), loadPlaylists(), loadVisits(), loadSharedVideos()]);
     dataLoaded = true;
     renderMembers();
     renderHistory();
@@ -971,6 +996,7 @@ document.querySelectorAll('.sidebar-menu li').forEach(li => {
     if (li.dataset.page === 'history') renderHistory();
     if (li.dataset.page === 'guests') renderGuestPage();
     if (li.dataset.page === 'videos') renderVideosPage();
+    if (li.dataset.page === 'shared') renderSharedFeed();
     if (li.dataset.page === 'board') renderBoard();
   });
   if (li.dataset.page === 'board') {
@@ -2485,6 +2511,7 @@ async function loadPosts() {
           title: f.title || '',
           author: f.author || '',
           content: f.content || '',
+          videoId: f.videoId || '',
           createdAt: f.createdAt || '',
           comments: JSON.parse(f.comments || '[]')
         });
@@ -2513,22 +2540,33 @@ function renderBoard() {
   posts.forEach(p => {
     const dateStr = p.createdAt ? p.createdAt.slice(0, 10) : '';
     const isExpanded = expandedPostId === p.id;
+    const thumbHtml = p.videoId
+      ? `<img src="https://i.ytimg.com/vi/${p.videoId}/mqdefault.jpg" alt="">`
+      : '';
     html += `<tr class="${isExpanded ? 'selected' : ''}" onclick="togglePost(${p.id})">
       <td class="col-no" style="text-align:center;">${p.id}</td>
+      <td class="col-thumb">${thumbHtml}</td>
       <td class="col-title">${escapeHtml(p.title)}</td>
       <td class="col-author">${escapeHtml(p.author)}</td>
       <td class="col-date">${dateStr}</td>
     </tr>`;
     if (isExpanded) {
-      html += `<tr><td colspan="4" style="padding:0;"><div class="post-detail">
+      let detailBody = '';
+      if (p.videoId) {
+        detailBody += `<div style="margin-bottom:12px;"><iframe src="https://www.youtube.com/embed/${p.videoId}?rel=0" style="width:100%;max-width:640px;aspect-ratio:16/9;border:none;border-radius:8px;" allowfullscreen></iframe></div>`;
+      }
+      if (p.content) {
+        detailBody += `<div class="post-body">${escapeHtml(p.content)}</div>`;
+      }
+      html += `<tr><td colspan="5" style="padding:0;"><div class="post-detail">
         <div class="post-meta">${escapeHtml(p.author)} | ${p.createdAt}</div>
-        <div class="post-body">${escapeHtml(p.content)}</div>
+        ${detailBody}
         ${renderComments(p)}
       </div></td></tr>`;
     }
   });
   if (posts.length === 0) {
-    html = '<tr><td colspan="4" style="text-align:center;color:#999;padding:30px;">등록된 글이 없습니다.</td></tr>';
+    html = '<tr><td colspan="5" style="text-align:center;color:#999;padding:30px;">등록된 글이 없습니다.</td></tr>';
   }
   tbody.innerHTML = html;
 }
@@ -2609,44 +2647,64 @@ async function addReply(postId, parentIdx) {
   await savePostCommentsToAirtable(post);
 }
 
+function openPostModal() {
+  showModal(`<h3>글 작성</h3>
+    <div class="form-group"><label>작성자</label><input id="post-author" placeholder="이름"></div>
+    <div class="form-group"><label>내용</label><textarea id="post-content" rows="4" placeholder="내용을 입력하세요" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:0.95em;resize:vertical;font-family:inherit;"></textarea></div>
+    <div class="form-group"><label>YouTube URL (선택)</label><input id="post-video-url" placeholder="https://youtube.com/watch?v=..."></div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">취소</button>
+    <button class="btn btn-primary" onclick="savePost()">저장</button></div>`);
+  setTimeout(() => document.getElementById('post-author').focus(), 100);
+}
+
 async function savePost() {
-  const title = document.getElementById('post-title').value.trim();
   const author = document.getElementById('post-author').value.trim();
   const content = document.getElementById('post-content').value.trim();
-  if (!title || !author || !content) { showToast('모든 항목을 입력해주세요.'); return; }
+  const videoUrl = document.getElementById('post-video-url').value.trim();
+
+  if (!author && !content && !videoUrl) { showToast('내용을 입력해주세요.'); return; }
+
+  let videoId = '';
+  let title = content ? content.slice(0, 30) + (content.length > 30 ? '...' : '') : '';
+
+  if (videoUrl) {
+    videoId = extractVideoId(videoUrl);
+    if (!videoId) { showToast('유효한 YouTube URL이 아닙니다.'); return; }
+    // Fetch video title
+    closeModal();
+    showToast('영상 정보 가져오는 중...');
+    const ytTitle = await fetchVideoTitle(videoId);
+    if (ytTitle) title = ytTitle;
+    else if (!title) title = '영상 공유';
+  } else {
+    if (!content) { showToast('내용을 입력해주세요.'); return; }
+    closeModal();
+  }
+
+  if (!title) title = '제목 없음';
 
   const post = {
     id: nextPostId++,
-    title, author, content,
+    title,
+    author: author || '토요테',
+    content: content || '',
+    videoId,
     createdAt: new Date().toISOString().slice(0, 16).replace('T', ' '),
     comments: []
   };
   posts.unshift(post);
   renderBoard();
-
-  // Clear form
-  document.getElementById('post-title').value = '';
-  document.getElementById('post-author').value = '';
-  document.getElementById('post-content').value = '';
-
   showToast('글이 등록되었습니다.');
 
   // Save to Airtable
   const fields = {
-    postId: post.id,
-    title: post.title,
-    author: post.author,
-    content: post.content,
-    createdAt: post.createdAt,
-    comments: JSON.stringify(post.comments)
+    postId: post.id, title: post.title, author: post.author,
+    content: post.content, videoId: post.videoId,
+    createdAt: post.createdAt, comments: JSON.stringify(post.comments)
   };
-  const data = await atFetch('Posts', {
-    method: 'POST',
-    body: JSON.stringify({ records: [{ fields }] })
-  });
+  const data = await atFetch('Posts', { method: 'POST', body: JSON.stringify({ records: [{ fields }] }) });
   if (data && data.records) postRecordIds[post.id] = data.records[0].id;
 
-  // Update nextPostId config
   if (postConfigRecordId) {
     await atFetch('Config', {
       method: 'PATCH',
@@ -2865,6 +2923,137 @@ function renderVideosPage() {
     selectedPlaylist = VIDEO_PLAYLISTS[0].id;
   }
   if (selectedPlaylist) selectPlaylist(selectedPlaylist);
+  if (currentVideoTab === 'shared') renderSharedVideos();
+}
+
+// ===================== SHARED VIDEOS =====================
+let sharedVideos = []; // {rid, title, author, videoId, isShorts, createdAt}
+let sharedDisplayCount = 10;
+
+async function loadSharedVideos() {
+  sharedVideos = [];
+  let offset = null;
+  do {
+    const url = offset ? `SharedVideos?offset=${offset}` : 'SharedVideos';
+    const data = await atFetch(url);
+    if (!data) break;
+    data.records.forEach(r => {
+      const f = r.fields;
+      if (f.videoId) {
+        sharedVideos.push({
+          rid: r.id, title: f.title || '', author: f.author || '',
+          videoId: f.videoId, createdAt: f.createdAt || '',
+          isShorts: (f.title || '').toLowerCase().includes('shorts') || (f.videoId || '').length === 11
+        });
+      }
+    });
+    offset = data.offset;
+  } while (offset);
+  sharedVideos.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+function renderSharedFeed() {
+  const feed = document.getElementById('shared-feed');
+  const loadMore = document.getElementById('shared-load-more');
+
+  if (sharedVideos.length === 0) {
+    feed.innerHTML = '<p style="color:#999;padding:20px;">공유된 영상이 없습니다.</p>';
+    loadMore.style.display = 'none';
+    return;
+  }
+
+  const visible = sharedVideos.slice(0, sharedDisplayCount);
+  let html = '';
+  visible.forEach(v => {
+    const isShorts = v.isShorts;
+    const thumbClass = isShorts ? 'thumb-shorts' : 'thumb-landscape';
+    const thumb = `https://i.ytimg.com/vi/${v.videoId}/mqdefault.jpg`;
+    const dateStr = v.createdAt ? v.createdAt.slice(0, 10) : '';
+
+    html += `<div class="shared-feed-card" id="sfc-${v.videoId}">
+      <div class="sfc-player" onclick="playSharedInline('${v.videoId}', ${isShorts})">
+        <img src="${thumb}" class="${thumbClass}" alt="">
+        <div class="play-overlay"></div>
+      </div>
+      <div class="sfc-info">
+        <div class="sfc-title">${escapeHtml(v.title)}</div>
+        <div class="sfc-meta">${escapeHtml(v.author)} · ${dateStr}</div>
+      </div>
+    </div>`;
+  });
+  feed.innerHTML = html;
+
+  loadMore.style.display = sharedDisplayCount < sharedVideos.length ? '' : 'none';
+}
+
+function loadMoreShared() {
+  sharedDisplayCount += 10;
+  renderSharedFeed();
+}
+
+function playSharedInline(videoId, isShorts) {
+  const card = document.getElementById('sfc-' + videoId);
+  if (!card) return;
+  const player = card.querySelector('.sfc-player');
+  const iframeClass = isShorts ? 'iframe-shorts' : 'iframe-landscape';
+  player.innerHTML = `<iframe class="${iframeClass}" src="https://www.youtube.com/embed/${videoId}?rel=0&autoplay=1" allowfullscreen></iframe>`;
+}
+
+function extractVideoId(url) {
+  let match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{11})/);
+  return match ? match[1] : null;
+}
+
+function isUrlShorts(url) {
+  return /youtube\.com\/shorts\//.test(url);
+}
+
+function openShareVideoModal() {
+  showModal(`<h3>영상 등록</h3>
+    <div class="form-group"><label>YouTube URL</label><input id="sv-url" placeholder="https://youtube.com/watch?v=... 또는 shorts URL"></div>
+    <div class="form-group"><label>작성자 (선택)</label><input id="sv-author" placeholder="미입력 시 '토요테'"></div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">취소</button>
+    <button class="btn btn-primary" onclick="shareVideo()">등록</button></div>`);
+  setTimeout(() => {
+    const el = document.getElementById('sv-url');
+    el.focus();
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); shareVideo(); } });
+  }, 100);
+}
+
+async function fetchVideoTitle(videoId) {
+  if (!YT_API_KEY) return '';
+  try {
+    const res = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${YT_API_KEY}`);
+    const data = await res.json();
+    if (data.items && data.items.length > 0) return data.items[0].snippet.title || '';
+  } catch (e) { console.error(e); }
+  return '';
+}
+
+async function shareVideo() {
+  const url = document.getElementById('sv-url').value.trim();
+  if (!url) { showToast('URL을 입력해주세요.'); return; }
+
+  const videoId = extractVideoId(url);
+  if (!videoId) { showToast('유효한 YouTube URL이 아닙니다.'); return; }
+
+  const author = document.getElementById('sv-author').value.trim() || '토요테';
+  const shorts = isUrlShorts(url);
+
+  closeModal();
+  showToast('영상 정보 가져오는 중...');
+
+  const title = await fetchVideoTitle(videoId) || '제목 없음';
+
+  const fields = { title, author, videoId, createdAt: new Date().toISOString().slice(0, 16).replace('T', ' ') };
+  const data = await atFetch('SharedVideos', { method: 'POST', body: JSON.stringify({ records: [{ fields }] }) });
+  if (data && data.records) {
+    sharedVideos.unshift({ rid: data.records[0].id, ...fields, isShorts: shorts });
+    sharedDisplayCount = Math.max(sharedDisplayCount, 10);
+    renderSharedFeed();
+    showToast('영상이 등록되었습니다.');
+  }
 }
 
 // ===================== VISITS =====================
