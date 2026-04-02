@@ -264,26 +264,25 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: fl
   .shared-video-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
 }
 
-/* Shared video feed */
-.shared-feed { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
-.shared-feed-card { background: #fff; border-radius: 12px; border: 1px solid #e0e0e0; overflow: hidden; transition: all 0.2s; }
+/* Shared video feed - masonry */
+.shared-feed { column-count: 4; column-gap: 14px; }
+.shared-feed-card { break-inside: avoid; margin-bottom: 14px; background: #fff; border-radius: 12px; border: 1px solid #e0e0e0; overflow: hidden; transition: all 0.2s; display: inline-block; width: 100%; }
 .shared-feed-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
-.shared-feed-card .sfc-player { position: relative; cursor: pointer; }
+.shared-feed-card .sfc-player { position: relative; cursor: pointer; overflow: hidden; }
 .shared-feed-card .sfc-player img { width: 100%; display: block; }
 .shared-feed-card .sfc-player img.thumb-landscape { aspect-ratio: 16/9; object-fit: cover; }
-.shared-feed-card .sfc-player img.thumb-shorts { aspect-ratio: 9/16; object-fit: cover; max-height: 400px; }
-.shared-feed-card .sfc-player .play-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 48px; height: 48px; background: rgba(0,0,0,0.6); border-radius: 50%; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.shared-feed-card .sfc-player img.thumb-shorts { aspect-ratio: 9/16; object-fit: cover; }
+.shared-feed-card .sfc-player .play-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 48px; height: 48px; background: rgba(0,0,0,0.6); border-radius: 50%; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 1; }
 .shared-feed-card .sfc-player .play-overlay::after { content: ''; border-left: 16px solid #fff; border-top: 10px solid transparent; border-bottom: 10px solid transparent; margin-left: 4px; }
 .shared-feed-card .sfc-player iframe { width: 100%; border: none; display: block; }
 .shared-feed-card .sfc-player iframe.iframe-landscape { aspect-ratio: 16/9; }
-.shared-feed-card .sfc-player iframe.iframe-shorts { aspect-ratio: 9/16; max-height: 400px; }
+.shared-feed-card .sfc-player iframe.iframe-shorts { aspect-ratio: 9/16; }
 .shared-feed-card .sfc-info { padding: 10px 14px; }
 .shared-feed-card .sfc-title { font-size: 0.9em; font-weight: 600; margin-bottom: 4px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .shared-feed-card .sfc-meta { font-size: 0.78em; color: #999; }
 
-@media (max-width: 768px) {
-  .shared-feed { grid-template-columns: 1fr 1fr; gap: 10px; }
-}
+@media (max-width: 1200px) { .shared-feed { column-count: 3; } }
+@media (max-width: 768px) { .shared-feed { column-count: 2; column-gap: 10px; } .shared-feed-card { margin-bottom: 10px; } }
 
 /* Guest management */
 .guest-layout { display: flex; gap: 24px; }
@@ -2943,7 +2942,7 @@ async function loadSharedVideos() {
         sharedVideos.push({
           rid: r.id, title: f.title || '', author: f.author || '',
           videoId: f.videoId, createdAt: f.createdAt || '',
-          isShorts: (f.title || '').toLowerCase().includes('shorts') || (f.videoId || '').length === 11
+          isShorts: f.isShorts === 'true'
         });
       }
     });
@@ -2965,13 +2964,11 @@ function renderSharedFeed() {
   const visible = sharedVideos.slice(0, sharedDisplayCount);
   let html = '';
   visible.forEach(v => {
-    const isShorts = v.isShorts;
-    const thumbClass = isShorts ? 'thumb-shorts' : 'thumb-landscape';
+    const thumbClass = v.isShorts ? 'thumb-shorts' : 'thumb-landscape';
     const thumb = `https://i.ytimg.com/vi/${v.videoId}/mqdefault.jpg`;
     const dateStr = v.createdAt ? v.createdAt.slice(0, 10) : '';
-
     html += `<div class="shared-feed-card" id="sfc-${v.videoId}">
-      <div class="sfc-player" onclick="playSharedInline('${v.videoId}', ${isShorts})">
+      <div class="sfc-player" onclick="playSharedInline('${v.videoId}', ${v.isShorts})">
         <img src="${thumb}" class="${thumbClass}" alt="">
         <div class="play-overlay"></div>
       </div>
@@ -2982,7 +2979,6 @@ function renderSharedFeed() {
     </div>`;
   });
   feed.innerHTML = html;
-
   loadMore.style.display = sharedDisplayCount < sharedVideos.length ? '' : 'none';
 }
 
@@ -3046,7 +3042,7 @@ async function shareVideo() {
 
   const title = await fetchVideoTitle(videoId) || '제목 없음';
 
-  const fields = { title, author, videoId, createdAt: new Date().toISOString().slice(0, 16).replace('T', ' ') };
+  const fields = { title, author, videoId, isShorts: shorts ? 'true' : 'false', createdAt: new Date().toISOString().slice(0, 16).replace('T', ' ') };
   const data = await atFetch('SharedVideos', { method: 'POST', body: JSON.stringify({ records: [{ fields }] }) });
   if (data && data.records) {
     sharedVideos.unshift({ rid: data.records[0].id, ...fields, isShorts: shorts });
