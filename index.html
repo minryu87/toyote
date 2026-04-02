@@ -2972,8 +2972,20 @@ function renderSharedFeed() {
   }
 
   const visible = sharedVideos.slice(0, sharedDisplayCount);
+  // Reorder: group shorts together so they pair up in flex-wrap
+  const landscapes = visible.filter(v => !v.isShorts);
+  const shorts = visible.filter(v => v.isShorts);
+  const reordered = [];
+  let li = 0, si = 0;
+  // Interleave: 1 landscape, then 2 shorts (if available), repeat
+  while (li < landscapes.length || si < shorts.length) {
+    if (li < landscapes.length) reordered.push(landscapes[li++]);
+    if (si < shorts.length) reordered.push(shorts[si++]);
+    if (si < shorts.length) reordered.push(shorts[si++]);
+  }
+
   let html = '<div class="shared-feed-row">';
-  visible.forEach(v => {
+  reordered.forEach(v => {
     const thumb = `https://i.ytimg.com/vi/${v.videoId}/mqdefault.jpg`;
     const dateStr = v.createdAt ? v.createdAt.slice(0, 10) : '';
     const cardClass = v.isShorts ? 'card-shorts' : 'card-landscape';
