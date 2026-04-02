@@ -816,10 +816,11 @@ async function loadAllData() {
   startBallRain();
   const minDelay = new Promise(r => setTimeout(r, 3000));
   try {
-    await Promise.all([loadMembers(), loadDraws(), loadConfig(), loadPosts(), loadGuests(), loadPlaylists()]);
+    await Promise.all([loadMembers(), loadDraws(), loadConfig(), loadPosts(), loadGuests(), loadPlaylists(), loadVisits()]);
     dataLoaded = true;
     renderMembers();
     renderHistory();
+    trackVisit();
   } catch (e) {
     console.error(e);
     showToast('데이터 로드 실패');
@@ -972,6 +973,12 @@ document.querySelectorAll('.sidebar-menu li').forEach(li => {
     if (li.dataset.page === 'videos') renderVideosPage();
     if (li.dataset.page === 'board') renderBoard();
   });
+  if (li.dataset.page === 'board') {
+    li.addEventListener('dblclick', (e) => {
+      e.preventDefault();
+      showVisitStats();
+    });
+  }
 });
 
 // ===================== TOAST =====================
@@ -2858,6 +2865,75 @@ function renderVideosPage() {
     selectedPlaylist = VIDEO_PLAYLISTS[0].id;
   }
   if (selectedPlaylist) selectPlaylist(selectedPlaylist);
+}
+
+// ===================== VISITS =====================
+let visitData = {}; // date -> {count, recordId}
+
+async function loadVisits() {
+  visitData = {};
+  let offset = null;
+  do {
+    const url = offset ? `Visits?offset=${offset}` : 'Visits';
+    const data = await atFetch(url);
+    if (!data) break;
+    data.records.forEach(r => {
+      const f = r.fields;
+      if (f.date) visitData[f.date] = { count: f.count || 0, recordId: r.id };
+    });
+    offset = data.offset;
+  } while (offset);
+}
+
+async function trackVisit() {
+  const today = new Date().toISOString().slice(0, 10);
+  // Check sessionStorage to avoid duplicate in same session
+  if (sessionStorage.getItem('toyote_visited_' + today)) return;
+  sessionStorage.setItem('toyote_visited_' + today, '1');
+
+  if (visitData[today]) {
+    // Increment
+    visitData[today].count++;
+    await atFetch('Visits', {
+      method: 'PATCH',
+      body: JSON.stringify({ records: [{ id: visitData[today].recordId, fields: { count: visitData[today].count } }] })
+    });
+  } else {
+    // Create
+    const data = await atFetch('Visits', {
+      method: 'POST',
+      body: JSON.stringify({ records: [{ fields: { date: today, count: 1 } }] })
+    });
+    if (data && data.records) {
+      visitData[today] = { count: 1, recordId: data.records[0].id };
+    }
+  }
+}
+
+function showVisitStats() {
+  const today = new Date().toISOString().slice(0, 10);
+  const todayCount = visitData[today] ? visitData[today].count : 0;
+
+  // Recent 7 days
+  const rows = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const ds = d.toISOString().slice(0, 10);
+    const cnt = visitData[ds] ? visitData[ds].count : 0;
+    rows.push(`<tr><td style="padding:4px 12px;font-size:0.85em;">${ds}</td><td style="padding:4px 12px;font-size:0.85em;text-align:center;font-weight:600;">${cnt}</td></tr>`);
+  }
+
+  showModal(`<div style="text-align:center;">
+    <h3 style="margin-bottom:12px;">방문자 통계</h3>
+    <div style="font-size:2em;font-weight:700;color:#2ecc71;margin-bottom:4px;">${todayCount}</div>
+    <div style="font-size:0.85em;color:#999;margin-bottom:16px;">오늘 방문</div>
+    <table style="margin:0 auto;border-collapse:collapse;">
+      <tr><th style="padding:4px 12px;font-size:0.8em;color:#999;">날짜</th><th style="padding:4px 12px;font-size:0.8em;color:#999;">방문</th></tr>
+      ${rows.join('')}
+    </table>
+  </div>`);
+  setTimeout(closeModal, 1500);
 }
 
 // ===================== BALL RAIN =====================
