@@ -1,0 +1,12 @@
+# Browser profile (login session data)
+band-proxy/browser-profile/
+
+# Claude Code
+.claude/
+
+# Python
+__pycache__/
+*.pyc
+
+# ngrok
+*.ngrok-free.app

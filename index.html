@@ -516,7 +516,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: fl
             </div>
           </div>
           <div class="participant-col">
-            <h4>참가 멤버 <button class="btn btn-sm btn-outline" onclick="loadGuestsForDraw()" style="margin-left:8px;font-size:0.8em;">게스트 불러오기</button></h4>
+            <h4>참가 멤버 <button class="btn btn-sm btn-outline" onclick="loadBandAttendees()" style="margin-left:8px;font-size:0.8em;">밴드 불러오기</button> <button class="btn btn-sm btn-outline" onclick="loadGuestsForDraw()" style="margin-left:4px;font-size:0.8em;">게스트 불러오기</button></h4>
             <div style="margin-bottom:6px;">
               <div style="font-size:0.78em;color:#c2185b;margin-bottom:3px;">여자 <button class="btn-add" style="width:20px;height:20px;font-size:0.8em;" onclick="openGuestModal('F')">+</button> <span style="color:#999;font-size:0.72em;">게스트</span></div>
               <div id="sel-female" class="cards-area"></div>
@@ -526,6 +526,10 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: fl
               <div id="sel-male" class="cards-area"></div>
             </div>
           </div>
+        </div>
+        <div id="band-comments" style="display:none;margin:10px 0;padding:10px;background:#fff8e1;border-radius:8px;border:1px solid #ffe082;">
+          <div style="font-weight:600;font-size:0.85em;margin-bottom:6px;">Band 댓글</div>
+          <div id="band-comments-list" style="font-size:0.82em;"></div>
         </div>
         <div class="center-btn">
           <button class="btn btn-primary" onclick="confirmParticipants()">멤버 확정</button>
@@ -845,6 +849,7 @@ let selectedParticipants = [];
 let drawGames = [];
 let lockedSlots = new Set();
 let currentOption = 'pair';
+let bandProxyUrl = '';
 let dataLoaded = false;
 
 // ---- Load all data from Airtable ----
@@ -921,6 +926,9 @@ async function loadConfig() {
     }
     if (r.fields.key === 'ytApiKey') {
       YT_API_KEY = r.fields.value || '';
+    }
+    if (r.fields.key === 'band_proxy_url') {
+      bandProxyUrl = (r.fields.value || '').replace(/\/+$/, '');
     }
   });
 }
@@ -1210,6 +1218,49 @@ function addGuest(gender) {
   if (!name) return;
   selectedParticipants.push({ id: -Date.now() - Math.floor(Math.random()*1000), name, gender, isGuest: true });
   renderParticipantSection(); closeModal();
+}
+
+async function loadBandAttendees() {
+  const date = document.getElementById('game-date').value;
+  if (!date) { showToast('게임 날짜를 먼저 선택해주세요.'); return; }
+  if (!bandProxyUrl) { showToast('Airtable Config에 band_proxy_url이 설정되지 않았습니다.'); return; }
+
+  const scheduleDate = date.replace(/-/g, '');
+  showToast('밴드 참석 정보 조회 중...');
+
+  try {
+    const res = await fetch(`${bandProxyUrl}/band/attendees?schedule_date=${scheduleDate}`);
+    const data = await res.json();
+    if (!data.success) { showToast('밴드 조회 실패: ' + (data.error || '알 수 없는 오류')); return; }
+
+    // 참석자 매칭 → 참가 멤버에 추가
+    let added = 0;
+    (data.attendees || []).forEach(a => {
+      const member = members.find(m => m.name === a.name);
+      if (member && !selectedParticipants.some(p => p.id === member.id)) {
+        selectedParticipants.push({ id: member.id, name: member.name, gender: member.gender, isGuest: false });
+        added++;
+      }
+    });
+    renderParticipantSection();
+
+    // 댓글 표시
+    const commentsEl = document.getElementById('band-comments');
+    const listEl = document.getElementById('band-comments-list');
+    if (data.comments && data.comments.length > 0) {
+      listEl.innerHTML = data.comments.map(c => `<div style="margin-bottom:4px;"><strong>${c.name}</strong>: ${c.body}</div>`).join('');
+      commentsEl.style.display = 'block';
+    } else {
+      commentsEl.style.display = 'none';
+    }
+
+    const unmatched = (data.attendees || []).filter(a => !members.find(m => m.name === a.name));
+    let msg = `밴드 참석자 ${data.attendee_count}명 중 ${added}명 추가됨`;
+    if (unmatched.length > 0) msg += ` (미매칭: ${unmatched.map(u => u.name).join(', ')})`;
+    showToast(msg);
+  } catch (e) {
+    showToast('밴드 서버 연결 실패: ' + e.message);
+  }
 }
 
 function loadGuestsForDraw() {
